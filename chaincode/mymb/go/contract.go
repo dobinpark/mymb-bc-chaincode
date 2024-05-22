@@ -137,7 +137,7 @@ func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContex
 	userKey := nickname // 닉네임을 키로 사용
 	userBytes, err := json.Marshal(user)
 	if err != nil {
-		return fmt.Errorf("failed to marsshal user block: %v", err)
+		return fmt.Errorf("failed to marshal user block: %v", err)
 	}
 
 	err = ctx.GetStub().PutState(userKey, userBytes)
@@ -165,8 +165,12 @@ func (c *TokenERC1155Contract) UpdateMymPoint(ctx contractapi.TransactionContext
 		return fmt.Errorf("failed to unmarshal user block: %v", err)
 	}
 
-	// MymPoint 업데이트
-	user.MymPoint += delta
+	// MymPoint 업데이트(음수 방지)
+	newMymPoint := user.MymPoint + delta
+	if newMymPoint < 0 {
+		return fmt.Errorf("MymPoint cannot be negative")
+	}
+	user.MymPoint = newMymPoint
 
 	// 업데이트된 유저 정보 저장
 	userBytes, err = json.Marshal(user)
@@ -304,9 +308,8 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 	return users, nil
 }
 
-// 특정 사용자가 다른 사용자에게 토큰을 전송하는 함수
-func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenID []string) error {
-
+// 특정 사용자가 다른 사용자에게 여러 토큰을 전송하는 함수
+func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenIDs []string) error {
 	// 송신자와 수신자의 정보 가져오기
 	fromUser, err := c.GetUser(ctx, from)
 	if err != nil {
@@ -317,25 +320,23 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("failed to get receiver information: %v", err)
 	}
 
-	// 송신자의 토큰 선택
-	fromUserTokens, err := c.GetUserOwnedTokens(ctx, from)
-	if err != nil {
-		return fmt.Errorf("failed to get sender's tokens: %v", err)
+	// 송신자와 수신자가 동일한 경우 처리
+	if from == to {
+		return fmt.Errorf("sender and receiver cannot be the same user")
 	}
 
 	// 송신자가 보유한 토큰들 중에 전송할 토큰들을 선택
 	var transferTokens []*Token1155
-	for _, fromUserToken := range fromUserTokens {
-		for _, tokenID := range tokenID {
-			if fromUserToken.TokenID == tokenID {
-				transferTokens = append(transferTokens, fromUserToken)
-				break
-			}
+	for _, tokenID := range tokenIDs {
+		token, err := c.GetToken(ctx, tokenID)
+		if err != nil {
+			return fmt.Errorf("failed to get token %s: %v", tokenID, err)
 		}
+		transferTokens = append(transferTokens, token)
 	}
 
 	// 송신자가 전송할 토큰이 없는 경우 오류 반환
-	if len(transferTokens) != len(tokenID) {
+	if len(transferTokens) != len(tokenIDs) {
 		return fmt.Errorf("sender %s does not own all specified tokens", from)
 	}
 
@@ -355,7 +356,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	}
 
 	// 수신자의 토큰 잔고 갱신
-	toUser.OwnedToken = append(toUser.OwnedToken, tokenID...)
+	toUser.OwnedToken = append(toUser.OwnedToken, tokenIDs...)
 
 	// 수신자 정보 업데이트
 	toUserKey := to // 닉네임을 사용하여 사용자 키 생성
@@ -366,6 +367,46 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	if err := ctx.GetStub().PutState(toUserKey, toUserBytes); err != nil {
 		return fmt.Errorf("failed to update receiver balance: %v", err)
 	}
+
+	// 트랜잭션 성공적으로 기록 확인
+	txID := ctx.GetStub().GetTxID()
+	fmt.Printf("Transfer of tokens %v from %s to %s successfully recorded with transaction ID %s\n", tokenIDs, from, to, txID)
+
+	return nil
+}
+
+// 여러 토큰 삭제 함수 추가
+func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenIDs []string) error {
+	// 사용자의 토큰 목록 가져오기
+	user, err := c.GetUser(ctx, nickName)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %v", err)
+	}
+
+	// 토큰 목록에서 지정된 토큰들 제거
+	for _, tokenID := range tokenIDs {
+		user.OwnedToken = removeToken(user.OwnedToken, tokenID)
+
+		// 체인코드 상태에서 토큰 삭제
+		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+		if err != nil {
+			return fmt.Errorf("failed to create composite key: %v", err)
+		}
+		if err := ctx.GetStub().DelState(tokenKey); err != nil {
+			return fmt.Errorf("failed to delete token: %v", err)
+		}
+	}
+
+	// 업데이트된 사용자 정보 저장
+	userKey := user.NickName
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user: %v", err)
+	}
+	if err := ctx.GetStub().PutState(userKey, userBytes); err != nil {
+		return fmt.Errorf("failed to update user: %v", err)
+	}
+
 	return nil
 }
 
