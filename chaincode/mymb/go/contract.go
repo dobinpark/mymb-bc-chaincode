@@ -410,6 +410,42 @@ func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextIn
 	return nil
 }
 
+// 사용자의 모든 토큰을 삭제하는 함수
+func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContextInterface, nickName string) error {
+	// 사용자의 토큰 목록 가져오기
+	user, err := c.GetUser(ctx, nickName)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %v", err)
+	}
+
+	// 모든 토큰 삭제
+	for _, tokenID := range user.OwnedToken {
+		// 체인코드 상태에서 토큰 삭제
+		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+		if err != nil {
+			return fmt.Errorf("failed to create composite key: %v", err)
+		}
+		if err := ctx.GetStub().DelState(tokenKey); err != nil {
+			return fmt.Errorf("failed to delete token: %v", err)
+		}
+	}
+
+	// 사용자의 OwnedToken 필드 초기화
+	user.OwnedToken = []string{}
+
+	// 업데이트된 사용자 정보 저장
+	userKey := user.NickName
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user: %v", err)
+	}
+	if err := ctx.GetStub().PutState(userKey, userBytes); err != nil {
+		return fmt.Errorf("failed to update user: %v", err)
+	}
+
+	return nil
+}
+
 // 토큰 슬라이스에서 특정 토큰을 제거하는 도우미 함수
 func removeToken(tokens []string, tokenID string) []string {
 	var newTokens []string
