@@ -375,6 +375,46 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	return nil
 }
 
+func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionContextInterface, from string, to string) error {
+	// 발신자 사용자 정보 조회
+	fromUser, err := c.GetUser(ctx, from)
+	if err != nil {
+		return fmt.Errorf("failed to get user %s: %v", from, err)
+	}
+
+	// 수신자 사용자 정보 조회
+	toUser, err := c.GetUser(ctx, to)
+	if err != nil {
+		return fmt.Errorf("failed to get user %s: %v", to, err)
+	}
+
+	// 모든 토큰을 수신자에게 전송
+	toUser.OwnedToken = append(toUser.OwnedToken, fromUser.OwnedToken...)
+	fromUser.OwnedToken = []string{}
+
+	// 발신자 사용자 정보 업데이트
+	fromUserBytes, err := json.Marshal(fromUser)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user %s: %v", from, err)
+	}
+	err = ctx.GetStub().PutState(from, fromUserBytes)
+	if err != nil {
+		return fmt.Errorf("failed to put state for user %s: %v", from, err)
+	}
+
+	// 수신자 사용자 정보 업데이트
+	toUserBytes, err := json.Marshal(toUser)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user %s: %v", to, err)
+	}
+	err = ctx.GetStub().PutState(to, toUserBytes)
+	if err != nil {
+		return fmt.Errorf("failed to put state for user %s: %v", to, err)
+	}
+
+	return nil
+}
+
 // 여러 토큰 삭제 함수 추가
 func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenIDs []string) error {
 	// 사용자의 토큰 목록 가져오기
