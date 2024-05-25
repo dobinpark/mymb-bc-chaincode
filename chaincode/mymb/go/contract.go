@@ -308,8 +308,7 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 	return users, nil
 }
 
-// 단일 토큰을 전송하는 함수
-func (c *TokenERC1155Contract) TransferSingleToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenID string) error {
+func (c *TokenERC1155Contract) TransferTokens(ctx contractapi.TransactionContextInterface, from string, to string, tokenIDs []string) error {
 	// 송신자와 수신자의 정보 가져오기
 	fromUser, err := c.GetUser(ctx, from)
 	if err != nil {
@@ -325,20 +324,30 @@ func (c *TokenERC1155Contract) TransferSingleToken(ctx contractapi.TransactionCo
 		return fmt.Errorf("sender and receiver cannot be the same user")
 	}
 
-	// 송신자가 보유한 토큰인지 확인
-	found := false
-	for _, token := range fromUser.OwnedToken {
-		if token == tokenID {
-			found = true
-			break
+	// 각 토큰에 대해 송신자가 보유한 토큰인지 확인하고 전송 수행
+	for _, tokenID := range tokenIDs {
+		found := false
+		for i, token := range fromUser.OwnedToken {
+			if token == tokenID {
+				found = true
+				// 송신자의 토큰 잔고에서 해당 토큰을 제거
+				fromUser.OwnedToken = removeToken(fromUser.OwnedToken, tokenID)
+
+				// 수신자의 토큰 잔고에 해당 토큰 추가
+				toUser.OwnedToken = append(toUser.OwnedToken, tokenID)
+
+				// 트랜잭션 성공적으로 기록 확인
+				txID := ctx.GetStub().GetTxID()
+				fmt.Printf("Transfer of token %s from %s to %s successfully recorded with transaction ID %s\n", tokenID, from, to, txID)
+
+				break
+			}
+			// 송신자가 토큰을 소유하지 않는 경우 오류 반환
+			if !found && i == len(fromUser.OwnedToken)-1 {
+				return fmt.Errorf("sender %s does not own the token %s", from, tokenID)
+			}
 		}
 	}
-	if !found {
-		return fmt.Errorf("sender %s does not own the token %s", from, tokenID)
-	}
-
-	// 송신자의 토큰 잔고에서 해당 토큰을 제거
-	fromUser.OwnedToken = removeToken(fromUser.OwnedToken, tokenID)
 
 	// 송신자 정보 업데이트
 	fromUserKey := from // 닉네임을 사용하여 사용자 키 생성
@@ -350,9 +359,6 @@ func (c *TokenERC1155Contract) TransferSingleToken(ctx contractapi.TransactionCo
 		return fmt.Errorf("failed to update sender balance: %v", err)
 	}
 
-	// 수신자의 토큰 잔고에 해당 토큰 추가
-	toUser.OwnedToken = append(toUser.OwnedToken, tokenID)
-
 	// 수신자 정보 업데이트
 	toUserKey := to // 닉네임을 사용하여 사용자 키 생성
 	toUserBytes, err := json.Marshal(toUser)
@@ -362,10 +368,6 @@ func (c *TokenERC1155Contract) TransferSingleToken(ctx contractapi.TransactionCo
 	if err := ctx.GetStub().PutState(toUserKey, toUserBytes); err != nil {
 		return fmt.Errorf("failed to update receiver balance: %v", err)
 	}
-
-	// 트랜잭션 성공적으로 기록 확인
-	txID := ctx.GetStub().GetTxID()
-	fmt.Printf("Transfer of token %s from %s to %s successfully recorded with transaction ID %s\n", tokenID, from, to, txID)
 
 	return nil
 }
