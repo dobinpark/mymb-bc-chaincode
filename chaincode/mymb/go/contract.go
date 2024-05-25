@@ -283,7 +283,6 @@ func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterfa
 }
 
 func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInterface) ([]User, error) {
-
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get state by range: %v", err)
@@ -305,6 +304,12 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 		}
 		users = append(users, user)
 	}
+
+	// 만약 사용자가 존재하지 않을 경우 nil이 아닌 빈 배열을 반환
+	if len(users) == 0 {
+		return []User{}, nil
+	}
+
 	return users, nil
 }
 
