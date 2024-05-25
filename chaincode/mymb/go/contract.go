@@ -331,7 +331,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 
 	// 송신자가 토큰을 소유하고 있는지 확인
 	found := false
-	for i, token := range fromUser.OwnedToken {
+	for _, token := range fromUser.OwnedToken {
 		if token == tokenID {
 			found = true
 			// 송신자의 토큰 목록에서 해당 토큰 제거
@@ -354,22 +354,20 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	}
 
 	// 송신자 정보 업데이트
-	fromUserKey := from // 닉네임을 사용하여 사용자 키 생성
 	fromUserBytes, err := json.Marshal(fromUser)
 	if err != nil {
 		return fmt.Errorf("failed to marshal sender user: %v", err)
 	}
-	if err := ctx.GetStub().PutState(fromUserKey, fromUserBytes); err != nil {
+	if err := ctx.GetStub().PutState(from, fromUserBytes); err != nil {
 		return fmt.Errorf("failed to update sender balance: %v", err)
 	}
 
 	// 수신자 정보 업데이트
-	toUserKey := to // 닉네임을 사용하여 사용자 키 생성
 	toUserBytes, err := json.Marshal(toUser)
 	if err != nil {
 		return fmt.Errorf("failed to marshal receiver user: %v", err)
 	}
-	if err := ctx.GetStub().PutState(toUserKey, toUserBytes); err != nil {
+	if err := ctx.GetStub().PutState(to, toUserBytes); err != nil {
 		return fmt.Errorf("failed to update receiver balance: %v", err)
 	}
 
