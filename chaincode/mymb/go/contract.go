@@ -374,6 +374,66 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	return nil
 }
 
+func (c *TokenERC1155Contract) TransferTokens(ctx contractapi.TransactionContextInterface, from string, to string, tokenIDs []string, quantities []int) error {
+	if len(tokenIDs) != len(quantities) {
+		return fmt.Errorf("tokenIDs and quantities arrays must have the same length")
+	}
+
+	fromUser, err := c.GetUser(ctx, from)
+	if err != nil {
+		return fmt.Errorf("failed to get sender information: %v", err)
+	}
+	toUser, err := c.GetUser(ctx, to)
+	if err != nil {
+		return fmt.Errorf("failed to get receiver information: %v", err)
+	}
+
+	if from == to {
+		return fmt.Errorf("sender and receiver cannot be the same user")
+	}
+
+	for i, tokenID := range tokenIDs {
+		quantity := quantities[i]
+		if quantity <= 0 {
+			return fmt.Errorf("quantity for token %s must be positive", tokenID)
+		}
+
+		count := 0
+		for _, token := range fromUser.OwnedToken {
+			if token == tokenID {
+				count++
+			}
+		}
+		if count < quantity {
+			return fmt.Errorf("sender %s does not own the token %s in sufficient quantity", from, tokenID)
+		}
+
+		fromUser.OwnedToken = removeTokenQuantity(fromUser.OwnedToken, tokenID, quantity)
+
+		for j := 0; j < quantity; j++ {
+			toUser.OwnedToken = append(toUser.OwnedToken, tokenID)
+		}
+	}
+
+	fromUserBytes, err := json.Marshal(fromUser)
+	if err != nil {
+		return fmt.Errorf("failed to marshal sender user: %v", err)
+	}
+	if err := ctx.GetStub().PutState(from, fromUserBytes); err != nil {
+		return fmt.Errorf("failed to update sender balance: %v", err)
+	}
+
+	toUserBytes, err := json.Marshal(toUser)
+	if err != nil {
+		return fmt.Errorf("failed to marshal receiver user: %v", err)
+	}
+	if err := ctx.GetStub().PutState(to, toUserBytes); err != nil {
+		return fmt.Errorf("failed to update receiver balance: %v", err)
+	}
+
+	return nil
+}
+
 func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionContextInterface, from string, to string) error {
 	// 발신자 사용자 정보 조회
 	fromUser, err := c.GetUser(ctx, from)
@@ -487,9 +547,23 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 
 // 토큰 슬라이스에서 특정 토큰을 제거하는 도우미 함수
 func removeToken(tokens []string, tokenID string) []string {
-	var newTokens []string
+	newTokens := []string{}
 	for _, token := range tokens {
 		if token != tokenID {
+			newTokens = append(newTokens, token)
+		}
+	}
+	return newTokens
+}
+
+// 토큰 슬라이스에서 특정 수량의 토큰을 제거하는 도우미 함수
+func removeTokenQuantity(tokens []string, tokenID string, quantity int) []string {
+	count := 0
+	newTokens := []string{}
+	for _, token := range tokens {
+		if token == tokenID && count < quantity {
+			count++
+		} else {
 			newTokens = append(newTokens, token)
 		}
 	}
