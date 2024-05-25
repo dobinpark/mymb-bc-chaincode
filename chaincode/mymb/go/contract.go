@@ -326,16 +326,14 @@ func (c *TokenERC1155Contract) TransferSingleToken(ctx contractapi.TransactionCo
 	}
 
 	// 송신자가 보유한 토큰인지 확인
-	containsToken := func(tokens []string, tokenID string) bool {
-		for _, token := range tokens {
-			if token == tokenID {
-				return true
-			}
+	found := false
+	for _, token := range fromUser.OwnedToken {
+		if token == tokenID {
+			found = true
+			break
 		}
-		return false
 	}
-
-	if !containsToken(fromUser.OwnedToken, tokenID) {
+	if !found {
 		return fmt.Errorf("sender %s does not own the token %s", from, tokenID)
 	}
 
