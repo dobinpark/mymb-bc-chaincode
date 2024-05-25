@@ -308,6 +308,61 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 	return users, nil
 }
 
+// 단일 토큰을 전송하는 함수
+func (c *TokenERC1155Contract) TransferSingleToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenID string) error {
+	// 송신자와 수신자의 정보 가져오기
+	fromUser, err := c.GetUser(ctx, from)
+	if err != nil {
+		return fmt.Errorf("failed to get sender information: %v", err)
+	}
+	toUser, err := c.GetUser(ctx, to)
+	if err != nil {
+		return fmt.Errorf("failed to get receiver information: %v", err)
+	}
+
+	// 송신자와 수신자가 동일한 경우 처리
+	if from == to {
+		return fmt.Errorf("sender and receiver cannot be the same user")
+	}
+
+	// 송신자가 보유한 토큰인지 확인
+	if !containsToken(fromUser.OwnedToken, tokenID) {
+		return fmt.Errorf("sender %s does not own the token %s", from, tokenID)
+	}
+
+	// 송신자의 토큰 잔고에서 해당 토큰을 제거
+	fromUser.OwnedToken = removeToken(fromUser.OwnedToken, tokenID)
+
+	// 송신자 정보 업데이트
+	fromUserKey := from // 닉네임을 사용하여 사용자 키 생성
+	fromUserBytes, err := json.Marshal(fromUser)
+	if err != nil {
+		return fmt.Errorf("failed to marshal sender user: %v", err)
+	}
+	if err := ctx.GetStub().PutState(fromUserKey, fromUserBytes); err != nil {
+		return fmt.Errorf("failed to update sender balance: %v", err)
+	}
+
+	// 수신자의 토큰 잔고에 해당 토큰 추가
+	toUser.OwnedToken = append(toUser.OwnedToken, tokenID)
+
+	// 수신자 정보 업데이트
+	toUserKey := to // 닉네임을 사용하여 사용자 키 생성
+	toUserBytes, err := json.Marshal(toUser)
+	if err != nil {
+		return fmt.Errorf("failed to marshal receiver user: %v", err)
+	}
+	if err := ctx.GetStub().PutState(toUserKey, toUserBytes); err != nil {
+		return fmt.Errorf("failed to update receiver balance: %v", err)
+	}
+
+	// 트랜잭션 성공적으로 기록 확인
+	txID := ctx.GetStub().GetTxID()
+	fmt.Printf("Transfer of token %s from %s to %s successfully recorded with transaction ID %s\n", tokenID, from, to, txID)
+
+	return nil
+}
+
 // 특정 사용자가 다른 사용자에게 여러 토큰을 전송하는 함수
 func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenIDs []string) error {
 	// 송신자와 수신자의 정보 가져오기
@@ -484,6 +539,16 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 	}
 
 	return nil
+}
+
+// 특정 토큰이 슬라이스에 포함되어 있는지 확인하는 함수
+func containsToken(tokens []string, tokenID string) bool {
+	for _, token := range tokens {
+		if token == tokenID {
+			return true
+		}
+	}
+	return false
 }
 
 // 토큰 슬라이스에서 특정 토큰을 제거하는 도우미 함수
