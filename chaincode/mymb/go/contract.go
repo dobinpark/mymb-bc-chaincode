@@ -326,6 +326,15 @@ func (c *TokenERC1155Contract) TransferSingleToken(ctx contractapi.TransactionCo
 	}
 
 	// 송신자가 보유한 토큰인지 확인
+	containsToken := func(tokens []string, tokenID string) bool {
+		for _, token := range tokens {
+			if token == tokenID {
+				return true
+			}
+		}
+		return false
+	}
+
 	if !containsToken(fromUser.OwnedToken, tokenID) {
 		return fmt.Errorf("sender %s does not own the token %s", from, tokenID)
 	}
@@ -539,16 +548,6 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 	}
 
 	return nil
-}
-
-// 특정 토큰이 슬라이스에 포함되어 있는지 확인하는 함수
-func containsToken(tokens []string, tokenID string) bool {
-	for _, token := range tokens {
-		if token == tokenID {
-			return true
-		}
-	}
-	return false
 }
 
 // 토큰 슬라이스에서 특정 토큰을 제거하는 도우미 함수
