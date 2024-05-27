@@ -318,8 +318,8 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 	return users, nil
 }
 
-// 특정 사용자가 다른 사용자에게 단일 토큰을 전송하는 함수
-func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenNumber string) error {
+// 특정 사용자가 다른 사용자에게 여러 토큰을 전송하는 함수
+func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenIDs []string) error {
 	// 송신자와 수신자의 정보 가져오기
 	fromUser, err := c.GetUser(ctx, from)
 	if err != nil {
@@ -335,20 +335,24 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("sender and receiver cannot be the same user")
 	}
 
-	// 송신자가 토큰을 보유하고 있는지 확인
-	found := false
-	for _, t := range fromUser.OwnedToken {
-		if t == tokenNumber {
-			found = true
-			break
+	// 송신자가 보유한 토큰들 중에 전송할 토큰들을 선택
+	var transferTokens []*Token1155
+	for _, tokenID := range tokenIDs {
+		token, err := c.GetToken(ctx, tokenID)
+		if err != nil {
+			return fmt.Errorf("failed to get token %s: %v", tokenID, err)
 		}
 	}
-	if !found {
-		return fmt.Errorf("sender %s does not own the specified token %s", from, tokenNumber)
+
+	// 송신자가 전송할 토큰이 없는 경우 오류 반환
+	if len(transferTokens) != len(tokenIDs) {
+		return fmt.Errorf("sender %s does not own all specified tokens", from)
 	}
 
 	// 송신자의 토큰 잔고 갱신
-	fromUser.OwnedToken = removeToken(fromUser.OwnedToken, tokenNumber)
+	for _, token := range transferTokens {
+		fromUser.OwnedToken = removeToken(fromUser.OwnedToken, token.TokenID)
+	}
 
 	// 송신자 정보 업데이트
 	fromUserKey := from // 닉네임을 사용하여 사용자 키 생성
@@ -361,7 +365,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	}
 
 	// 수신자의 토큰 잔고 갱신
-	toUser.OwnedToken = append(toUser.OwnedToken, tokenNumber)
+	toUser.OwnedToken = append(toUser.OwnedToken, tokenIDs...)
 
 	// 수신자 정보 업데이트
 	toUserKey := to // 닉네임을 사용하여 사용자 키 생성
@@ -375,7 +379,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 
 	// 트랜잭션 성공적으로 기록 확인
 	txID := ctx.GetStub().GetTxID()
-	fmt.Printf("Transfer of token %s from %s to %s successfully recorded with transaction ID %s\n", tokenNumber, from, to, txID)
+	fmt.Printf("Transfer of tokens %v from %s to %s successfully recorded with transaction ID %s\n", tokenIDs, from, to, txID)
 
 	return nil
 }
