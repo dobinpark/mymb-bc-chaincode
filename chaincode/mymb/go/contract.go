@@ -13,7 +13,6 @@ type TokenERC1155Contract struct {
 }
 
 type Token1155 struct {
-	TokenID          string    `json:"TokenID"`
 	TokenNumber      string    `json:"TokenNumber"`
 	CategoryCode     string    `json:"CategoryCode"`
 	PollingResultID  string    `json:"PollingResultID"`
@@ -23,7 +22,6 @@ type Token1155 struct {
 }
 
 type User struct {
-	UserId           string    `json:"UserID"`
 	NickName         string    `json:"NickName"`
 	MymPoint         int64     `json:"MymPoint"`
 	OwnedToken       []string  `json:"OwnedToken"`
@@ -102,10 +100,10 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 }
 
 // sellStage 값을 변경하는 함수.
-func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContextInterface, tokenID string, newSellStage string) error {
+func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContextInterface, tokenNumber string, newSellStage string) error {
 
 	// 토큰 조회
-	token, err := c.GetToken(ctx, tokenID)
+	token, err := c.GetToken(ctx, tokenNumber)
 	if err != nil {
 		return fmt.Errorf("failed to get token: %v", err)
 	}
@@ -114,7 +112,7 @@ func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContex
 	token.SellStage = newSellStage
 
 	// 토큰 정보 업데이트
-	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return fmt.Errorf("failed to create composite key: %v", err)
 	}
@@ -194,10 +192,10 @@ func (c *TokenERC1155Contract) UpdateMymPoint(ctx contractapi.TransactionContext
 	return nil
 }
 
-func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterface, tokenID string) (*Token1155, error) {
+func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterface, tokenNumber string) (*Token1155, error) {
 
 	// 토큰 ID를 사용하여 토큰 키 생성
-	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create composite key: %v", err)
 	}
@@ -210,7 +208,7 @@ func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterf
 
 	// 조회된 토큰이 없으면 에러 반환
 	if tokenBytes == nil {
-		return nil, fmt.Errorf("token with ID %s does not exist", tokenID)
+		return nil, fmt.Errorf("token with ID %s does not exist", tokenNumber)
 	}
 
 	// 조회된 토큰을 구조체로 변환하여 반환
@@ -262,10 +260,10 @@ func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionCon
 	var ownedTokens []*Token1155
 
 	// 사용자가 소유한 각 토큰 ID에 대해 토큰 정보 조회
-	for _, tokenID := range user.OwnedToken {
-		token, err := c.GetToken(ctx, tokenID)
+	for _, tokenNumber := range user.OwnedToken {
+		token, err := c.GetToken(ctx, tokenNumber)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get token %s: %v", tokenID, err)
+			return nil, fmt.Errorf("failed to get token %s: %v", tokenNumber, err)
 		}
 		ownedTokens = append(ownedTokens, token)
 	}
@@ -318,7 +316,7 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 }
 
 // 특정 사용자가 다른 사용자에게 단일 토큰을 전송하는 함수
-func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenID string) error {
+func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenNumber string) error {
 	// 송신자와 수신자의 정보 가져오기
 	fromUser, err := c.GetUser(ctx, from)
 	if err != nil {
@@ -337,17 +335,17 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	// 송신자가 보유한 토큰 중에서 전송할 토큰을 찾기
 	found := false
 	for _, t := range fromUser.OwnedToken {
-		if t == tokenID {
+		if t == tokenNumber {
 			found = true
 			break
 		}
 	}
 	if !found {
-		return fmt.Errorf("sender %s does not own the specified token %s", from, tokenID)
+		return fmt.Errorf("sender %s does not own the specified token %s", from, tokenNumber)
 	}
 
 	// 송신자의 토큰 잔고 갱신
-	fromUser.OwnedToken = removeToken(fromUser.OwnedToken, tokenID)
+	fromUser.OwnedToken = removeToken(fromUser.OwnedToken, tokenNumber)
 
 	// 송신자 정보 업데이트
 	fromUserKey := from // 닉네임을 사용하여 사용자 키 생성
@@ -360,7 +358,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	}
 
 	// 수신자의 토큰 잔고 갱신
-	toUser.OwnedToken = append(toUser.OwnedToken, tokenID)
+	toUser.OwnedToken = append(toUser.OwnedToken, tokenNumber)
 
 	// 수신자 정보 업데이트
 	toUserKey := to // 닉네임을 사용하여 사용자 키 생성
@@ -374,7 +372,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 
 	// 트랜잭션 성공적으로 기록 확인
 	txID := ctx.GetStub().GetTxID()
-	fmt.Printf("Transfer of token %s from %s to %s successfully recorded with transaction ID %s\n", tokenID, from, to, txID)
+	fmt.Printf("Transfer of token %s from %s to %s successfully recorded with transaction ID %s\n", tokenNumber, from, to, txID)
 
 	return nil
 }
@@ -420,7 +418,7 @@ func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionCont
 }
 
 // 여러 토큰 삭제 함수 추가
-func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenIDs []string) error {
+func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenNumbers []string) error {
 	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
 	if err != nil {
@@ -428,11 +426,11 @@ func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextIn
 	}
 
 	// 토큰 목록에서 지정된 토큰들 제거
-	for _, tokenID := range tokenIDs {
-		user.OwnedToken = removeToken(user.OwnedToken, tokenID)
+	for _, tokenNumber := range tokenNumbers {
+		user.OwnedToken = removeToken(user.OwnedToken, tokenNumber)
 
 		// 체인코드 상태에서 토큰 삭제
-		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 		if err != nil {
 			return fmt.Errorf("failed to create composite key: %v", err)
 		}
@@ -463,9 +461,9 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 	}
 
 	// 모든 토큰 삭제
-	for _, tokenID := range user.OwnedToken {
+	for _, tokenNumber := range user.OwnedToken {
 		// 체인코드 상태에서 토큰 삭제
-		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 		if err != nil {
 			return fmt.Errorf("failed to create composite key: %v", err)
 		}
@@ -491,10 +489,10 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 }
 
 // 토큰 슬라이스에서 특정 토큰을 제거하는 도우미 함수
-func removeToken(tokens []string, tokenID string) []string {
+func removeToken(tokens []string, tokenNumber string) []string {
 	var newTokens []string
 	for _, token := range tokens {
-		if token != tokenID {
+		if token != tokenNumber {
 			newTokens = append(newTokens, token)
 		}
 	}
