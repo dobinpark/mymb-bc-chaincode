@@ -438,7 +438,7 @@ func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionCont
 	return nil
 }
 
-// 특정 유저가 특정 토큰을 삭제하는 함수.
+// 특정 유저가 가지고 있는 특정 토큰을 삭제하는 함수.
 func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenNumbers []string) error {
 	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
