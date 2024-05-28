@@ -62,7 +62,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		TokenCreatedTime: time.Now(), // 현재 시간 사용
 	}
 
-	// TokenID, Token 저장
+	// tokenNumber, Token 저장
 	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create composite key: %v", err)
@@ -286,6 +286,12 @@ func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterfa
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal user block: %v", err)
 	}
+
+	// OwnedToken 필드가 nil인 경우 빈 배열로 초기화
+	if user.OwnedToken == nil {
+		user.OwnedToken = []string{}
+	}
+
 	return &user, nil
 }
 
@@ -310,6 +316,12 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal user: %v", err)
 		}
+
+		// OwnedToken 필드가 nil인 경우 빈 배열로 초기화
+		if user.OwnedToken == nil {
+			user.OwnedToken = []string{}
+		}
+
 		users = append(users, user)
 	}
 	return users, nil
