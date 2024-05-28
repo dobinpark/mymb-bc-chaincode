@@ -51,7 +51,7 @@ const (
 	balancePrefix = "balance"
 )
 
-func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenID string, tokenNumber string,
+func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenNumber string,
 	categoryCode string, pollingResultID string, tokenType string, sellStage string) (*Token1155, error) {
 
 	// Token 생성
@@ -65,7 +65,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 	}
 
 	// TokenID, Token 저장
-	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create composite key: %v", err)
 	}
@@ -87,7 +87,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		return nil, fmt.Errorf("failed to get user information: %v", err)
 	}
 
-	user.OwnedToken = append(user.OwnedToken, tokenID)
+	user.OwnedToken = append(user.OwnedToken, tokenNumber)
 
 	userKey := nickName
 	userBytes, err := json.Marshal(user)
