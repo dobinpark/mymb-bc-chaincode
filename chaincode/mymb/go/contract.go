@@ -13,21 +13,21 @@ type TokenERC1155Contract struct {
 }
 
 type Token1155 struct {
-	TokenNumber      string    `json:"TokenNumber"`
-	CategoryCode     string    `json:"CategoryCode"`
-	PollingResultID  string    `json:"PollingResultID"`
-	fundingID        string    `json:"FundingID"`
-	TokenType        string    `json:"TokenType"`
+	TokenNumber      string    `json:"tokenNumber"`
+	CategoryCode     string    `json:"categoryCode"`
+	PollingResultID  string    `json:"pollingResultID"`
+	FundingID        string    `json:"fundingID"`
+	TokenType        string    `json:"tokenType"`
 	SellStage        string    `json:"sellStage"`
-	ImageURL         string    `json:"ImageURL"`
-	TokenCreatedTime time.Time `json:"TokenCreatedTime"`
+	ImageURL         string    `json:"imageURL"`
+	TokenCreatedTime time.Time `json:"tokenCreatedTime"`
 }
 
 type User struct {
-	NickName         string    `json:"NickName"`
-	MymPoint         int64     `json:"MymPoint"`
-	OwnedToken       []string  `json:"OwnedToken"`
-	BlockCreatedTime time.Time `json:"BlockCreatedTime"`
+	NickName         string    `json:"nickName"`
+	MymPoint         int64     `json:"mymPoint"`
+	OwnedToken       []string  `json:"ownedToken"`
+	BlockCreatedTime time.Time `json:"blockCreatedTime"`
 }
 
 type TransferRequest struct {
@@ -60,7 +60,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		TokenNumber:      tokenNumber,
 		CategoryCode:     categoryCode,
 		PollingResultID:  pollingResultID,
-		fundingID:        fundingID,
+		FundingID:        fundingID,
 		TokenType:        tokenType,
 		SellStage:        sellStage,
 		ImageURL:         imageURL,
