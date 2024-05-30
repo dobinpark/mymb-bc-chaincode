@@ -19,6 +19,7 @@ type Token1155 struct {
 	fundingID        string    `json:"FundingID"`
 	TokenType        string    `json:"TokenType"`
 	SellStage        string    `json:"sellStage"`
+	ImageURL         string    `json:"ImageURL"`
 	TokenCreatedTime time.Time `json:"TokenCreatedTime"`
 }
 
@@ -52,7 +53,7 @@ const (
 
 // '(주)밈비' 계정에 단일 토큰을 생성하는 함수.
 func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenNumber string,
-	categoryCode string, pollingResultID string, fundingID string, tokenType string, sellStage string) (*Token1155, error) {
+	categoryCode string, pollingResultID string, fundingID string, tokenType string, sellStage string, imageURL string) (*Token1155, error) {
 
 	// Token 생성
 	token := Token1155{
@@ -62,6 +63,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		fundingID:        fundingID,
 		TokenType:        tokenType,
 		SellStage:        sellStage,
+		ImageURL:         imageURL,
 		TokenCreatedTime: time.Now(), // 현재 시간 사용
 	}
 
