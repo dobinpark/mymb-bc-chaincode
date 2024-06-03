@@ -51,6 +51,7 @@ const (
 	balancePrefix = "balance"
 )
 
+// 토큰을 발행하는 함수
 func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenID string, tokenNumber string,
 	categoryCode string, pollingResultID string, tokenType string, sellStage string) (*Token1155, error) {
 
@@ -101,99 +102,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 	return &token, nil
 }
 
-// sellStage 값을 변경하는 함수.
-func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContextInterface, tokenID string, newSellStage string) error {
-
-	// 토큰 조회
-	token, err := c.GetToken(ctx, tokenID)
-	if err != nil {
-		return fmt.Errorf("failed to get token: %v", err)
-	}
-
-	// sellStage 필드 업데이트
-	token.SellStage = newSellStage
-
-	// 토큰 정보 업데이트
-	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
-	if err != nil {
-		return fmt.Errorf("failed to create composite key: %v", err)
-	}
-
-	tokenBytes, err := json.Marshal(token)
-	if err != nil {
-		return fmt.Errorf("failed to marshal token: %v", err)
-	}
-
-	err = ctx.GetStub().PutState(tokenKey, tokenBytes)
-	if err != nil {
-		return fmt.Errorf("failed to put state: %v", err)
-	}
-	return nil
-}
-
-func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface,
-	nickname string, mymPoint int64, ownedToken []string) error {
-
-	// User 생성
-	user := User{
-		NickName:         nickname,
-		MymPoint:         mymPoint,
-		OwnedToken:       ownedToken,
-		BlockCreatedTime: time.Now(),
-	}
-
-	// User 블록 저장
-	userKey := nickname // 닉네임을 키로 사용
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		return fmt.Errorf("failed to marshal user block: %v", err)
-	}
-
-	err = ctx.GetStub().PutState(userKey, userBytes)
-	if err != nil {
-		return fmt.Errorf("failed to put state for user block: %v", err)
-	}
-	return nil
-}
-
-func (c *TokenERC1155Contract) UpdateMymPoint(ctx contractapi.TransactionContextInterface, nickName string, delta int64) error {
-
-	// 기존 유저 정보 가져오기
-	userKey := nickName
-	userBytes, err := ctx.GetStub().GetState(userKey)
-	if err != nil {
-		return fmt.Errorf("failed to read user block: %v", err)
-	}
-	if userBytes == nil {
-		return fmt.Errorf("user with nickname %s does not exist", nickName)
-	}
-
-	var user User
-	err = json.Unmarshal(userBytes, &user)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal user block: %v", err)
-	}
-
-	// MymPoint 업데이트(음수 방지)
-	newMymPoint := user.MymPoint + delta
-	if newMymPoint < 0 {
-		return fmt.Errorf("MymPoint cannot be negative")
-	}
-	user.MymPoint = newMymPoint
-
-	// 업데이트된 유저 정보 저장
-	userBytes, err = json.Marshal(user)
-	if err != nil {
-		return fmt.Errorf("failed to marshal updated user block: %v", err)
-	}
-
-	err = ctx.GetStub().PutState(userKey, userBytes)
-	if err != nil {
-		return fmt.Errorf("failed to put state for updated user block: %v", err)
-	}
-	return nil
-}
-
+// 해당 유저를 조회하는 함수
 func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterface, tokenID string) (*Token1155, error) {
 
 	// 토큰 ID를 사용하여 토큰 키 생성
@@ -222,6 +131,7 @@ func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterf
 	return &token, nil
 }
 
+// 모든 유저들을 조회하는 함수
 func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextInterface) ([]QueryResultToken, error) {
 
 	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(tokenPrefix, []string{})
@@ -252,6 +162,7 @@ func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextIn
 	return results, nil
 }
 
+// 해당 유저가 가지고 있는 토큰들을 조회하는 함수
 func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionContextInterface, nickName string) ([]*Token1155, error) {
 	// 사용자 정보 조회
 	user, err := c.GetUser(ctx, nickName)
@@ -272,52 +183,37 @@ func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionCon
 	return ownedTokens, nil
 }
 
-func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterface, nickName string) (*User, error) {
+// sellStage 필드값을 변경하는 함수
+func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContextInterface, tokenID string, newSellStage string) error {
 
-	userKey := nickName // 닉네임을 키로 사용
-	userBytes, err := ctx.GetStub().GetState(userKey)
+	// 토큰 조회
+	token, err := c.GetToken(ctx, tokenID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read user block: %v", err)
-	}
-	if userBytes == nil {
-		return nil, fmt.Errorf("user with nickname %s does not exist", nickName)
+		return fmt.Errorf("failed to get token: %v", err)
 	}
 
-	var user User
-	err = json.Unmarshal(userBytes, &user)
+	// sellStage 필드 업데이트
+	token.SellStage = newSellStage
+
+	// 토큰 정보 업데이트
+	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal user block: %v", err)
+		return fmt.Errorf("failed to create composite key: %v", err)
 	}
-	return &user, nil
+
+	tokenBytes, err := json.Marshal(token)
+	if err != nil {
+		return fmt.Errorf("failed to marshal token: %v", err)
+	}
+
+	err = ctx.GetStub().PutState(tokenKey, tokenBytes)
+	if err != nil {
+		return fmt.Errorf("failed to put state: %v", err)
+	}
+	return nil
 }
 
-func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInterface) ([]User, error) {
-
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get state by range: %v", err)
-	}
-	defer resultsIterator.Close()
-
-	var users []User
-
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get next query response: %v", err)
-		}
-
-		var user User
-		err = json.Unmarshal(queryResponse.Value, &user)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal user: %v", err)
-		}
-		users = append(users, user)
-	}
-	return users, nil
-}
-
-// 특정 사용자가 다른 사용자에게 단일 토큰을 전송하는 함수
+// 지정된 토큰을 전송하는 함수
 func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenID string) error {
 	// 송신자와 수신자의 정보 가져오기
 	fromUser, err := c.GetUser(ctx, from)
@@ -379,6 +275,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	return nil
 }
 
+// 해당 유저의 모든 토큰들을 전송하는 함수
 func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionContextInterface, from string, to string) error {
 	// 발신자 사용자 정보 조회
 	fromUser, err := c.GetUser(ctx, from)
@@ -419,7 +316,7 @@ func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionCont
 	return nil
 }
 
-// 여러 토큰 삭제 함수 추가
+// 지정된 토큰들을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenIDs []string) error {
 	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
@@ -454,7 +351,7 @@ func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextIn
 	return nil
 }
 
-// 사용자의 모든 토큰을 삭제하는 함수
+// 해당 유저가 가지고 있는 모든 토큰들을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContextInterface, nickName string) error {
 	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
@@ -487,6 +384,118 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 		return fmt.Errorf("failed to update user: %v", err)
 	}
 
+	return nil
+}
+
+// 유저 정보 블록을 생성하는 함수
+func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface,
+	nickname string, mymPoint int64, ownedToken []string) error {
+
+	// User 생성
+	user := User{
+		NickName:         nickname,
+		MymPoint:         mymPoint,
+		OwnedToken:       ownedToken,
+		BlockCreatedTime: time.Now(),
+	}
+
+	// User 블록 저장
+	userKey := nickname // 닉네임을 키로 사용
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user block: %v", err)
+	}
+
+	err = ctx.GetStub().PutState(userKey, userBytes)
+	if err != nil {
+		return fmt.Errorf("failed to put state for user block: %v", err)
+	}
+	return nil
+}
+
+// 해당 유저 정보를 조회하는 함수
+func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterface, nickName string) (*User, error) {
+
+	userKey := nickName // 닉네임을 키로 사용
+	userBytes, err := ctx.GetStub().GetState(userKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read user block: %v", err)
+	}
+	if userBytes == nil {
+		return nil, fmt.Errorf("user with nickname %s does not exist", nickName)
+	}
+
+	var user User
+	err = json.Unmarshal(userBytes, &user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal user block: %v", err)
+	}
+	return &user, nil
+}
+
+// 모든 유저 정보를 조회하는 함수
+func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInterface) ([]User, error) {
+
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get state by range: %v", err)
+	}
+	defer resultsIterator.Close()
+
+	var users []User
+
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get next query response: %v", err)
+		}
+
+		var user User
+		err = json.Unmarshal(queryResponse.Value, &user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal user: %v", err)
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+// 커뮤니티 활동 포인트 적립하는 함수
+func (c *TokenERC1155Contract) UpdateMymPoint(ctx contractapi.TransactionContextInterface, nickName string, delta int64) error {
+
+	// 기존 유저 정보 가져오기
+	userKey := nickName
+	userBytes, err := ctx.GetStub().GetState(userKey)
+	if err != nil {
+		return fmt.Errorf("failed to read user block: %v", err)
+	}
+	if userBytes == nil {
+		return fmt.Errorf("user with nickname %s does not exist", nickName)
+	}
+
+	var user User
+	err = json.Unmarshal(userBytes, &user)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal user block: %v", err)
+	}
+
+	// MymPoint 업데이트(음수 방지)
+	newMymPoint := user.MymPoint + delta
+	if newMymPoint < 0 {
+		return fmt.Errorf("MymPoint cannot be negative")
+	}
+	user.MymPoint = newMymPoint
+
+	// 업데이트된 유저 정보 저장
+	userBytes, err = json.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("failed to marshal updated user block: %v", err)
+	}
+
+	err = ctx.GetStub().PutState(userKey, userBytes)
+	if err != nil {
+		return fmt.Errorf("failed to put state for updated user block: %v", err)
+	}
 	return nil
 }
 
