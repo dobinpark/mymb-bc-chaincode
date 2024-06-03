@@ -62,8 +62,8 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		TokenNumber:      tokenNumber,
 		CategoryCode:     categoryCode,
 		FundingID:        fundingID,
-		TicketID:         ticketID,
 		PollingResultID:  pollingResultID,
+		TicketID:         ticketID,
 		TokenType:        tokenType,
 		SellStage:        sellStage,
 		TokenCreatedTime: time.Now(), // 현재 시간 사용
