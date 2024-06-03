@@ -17,6 +17,8 @@ type Token1155 struct {
 	TokenNumber      string    `json:"TokenNumber"`
 	CategoryCode     string    `json:"CategoryCode"`
 	PollingResultID  string    `json:"PollingResultID"`
+	FundingID        string    `json:"FundingID"`
+	TicketID         string    `json:"TicketID"`
 	TokenType        string    `json:"TokenType"`
 	SellStage        string    `json:"sellStage"`
 	TokenCreatedTime time.Time `json:"TokenCreatedTime"`
@@ -53,12 +55,14 @@ const (
 
 // 토큰을 발행하는 함수
 func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenID string, tokenNumber string,
-	categoryCode string, pollingResultID string, tokenType string, sellStage string) (*Token1155, error) {
+	categoryCode string, pollingResultID string, fundingID string, ticketID string, tokenType string, sellStage string) (*Token1155, error) {
 
 	// Token 생성
 	token := Token1155{
 		TokenNumber:      tokenNumber,
 		CategoryCode:     categoryCode,
+		FundingID:        fundingID,
+		TicketID:         ticketID,
 		PollingResultID:  pollingResultID,
 		TokenType:        tokenType,
 		SellStage:        sellStage,
