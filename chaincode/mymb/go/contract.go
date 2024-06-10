@@ -163,11 +163,14 @@ func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextIn
 			Record: token,
 		})
 	}
+	// 총 개수를 로그에 출력
+	fmt.Printf("total: %d tokens\n", len(results))
 	return results, nil
 }
 
 // 해당 유저가 가지고 있는 토큰들을 조회하는 함수
 func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionContextInterface, nickName string) ([]*Token1155, error) {
+
 	// 사용자 정보 조회
 	user, err := c.GetUser(ctx, nickName)
 	if err != nil {
@@ -184,6 +187,8 @@ func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionCon
 		}
 		ownedTokens = append(ownedTokens, token)
 	}
+	// 총 개수를 로그에 출력
+	fmt.Printf("total: %d tokens\n", len(ownedTokens))
 	return ownedTokens, nil
 }
 
@@ -461,6 +466,8 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 		}
 		users = append(users, user)
 	}
+	// 총 개수를 로그에 출력
+	fmt.Printf("total: %d users\n", len(users))
 	return users, nil
 }
 
