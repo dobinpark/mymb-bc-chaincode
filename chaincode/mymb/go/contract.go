@@ -106,7 +106,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 	return &token, nil
 }
 
-// 해당 유저를 조회하는 함수
+// 해당 토큰을 조회하는 함수
 func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterface, tokenID string) (*Token1155, error) {
 
 	// 토큰 ID를 사용하여 토큰 키 생성
@@ -135,7 +135,7 @@ func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterf
 	return &token, nil
 }
 
-// 모든 유저들을 조회하는 함수
+// 모든 토큰들을 조회하는 함수
 func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextInterface) ([]QueryResultToken, error) {
 
 	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(tokenPrefix, []string{})
@@ -166,6 +166,30 @@ func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextIn
 	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d tokens\n", len(results))
 	return results, nil
+}
+
+// 모든 토큰의 총 개수를 반환하는 함수
+func (c *TokenERC1155Contract) GetTotalTokens(ctx contractapi.TransactionContextInterface) (int, error) {
+
+	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(tokenPrefix, []string{})
+	if err != nil {
+		return 0, fmt.Errorf("failed to get state by partial composite key: %v", err)
+	}
+	defer resultsIterator.Close()
+
+	var totalCount int
+
+	for resultsIterator.HasNext() {
+		_, err := resultsIterator.Next()
+		if err != nil {
+			return 0, fmt.Errorf("failed to get next query response: %v", err)
+		}
+		totalCount++
+	}
+
+	// 총 개수를 로그에 출력
+	fmt.Printf("total: %d tokens\n", totalCount)
+	return totalCount, nil
 }
 
 // 해당 유저가 가지고 있는 토큰들을 조회하는 함수
@@ -469,6 +493,30 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d users\n", len(users))
 	return users, nil
+}
+
+// 모든 유저들의 total 값을 반환하는 함수
+func (c *TokenERC1155Contract) GetTotalUsers(ctx contractapi.TransactionContextInterface) (int, error) {
+
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return 0, fmt.Errorf("failed to get state by range: %v", err)
+	}
+	defer resultsIterator.Close()
+
+	var totalCount int
+
+	for resultsIterator.HasNext() {
+		_, err := resultsIterator.Next()
+		if err != nil {
+			return 0, fmt.Errorf("failed to get next query response: %v", err)
+		}
+		totalCount++
+	}
+
+	// 총 개수를 로그에 출력
+	fmt.Printf("total: %d users\n", totalCount)
+	return totalCount, nil
 }
 
 // 커뮤니티 활동 포인트 적립하는 함수
