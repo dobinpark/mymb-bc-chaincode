@@ -15,6 +15,7 @@ type TokenERC1155Contract struct {
 type Token1155 struct {
 	TokenID          string    `json:"TokenID"`
 	TokenNumber      string    `json:"TokenNumber"`
+	Owner            string    `json:"Owner"`
 	CategoryCode     string    `json:"CategoryCode"`
 	PollingResultID  string    `json:"PollingResultID"`
 	FundingID        string    `json:"FundingID"`
@@ -54,12 +55,13 @@ const (
 )
 
 // 토큰을 발행하는 함수
-func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenID string, tokenNumber string,
+func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenID string, tokenNumber string, owner string,
 	categoryCode string, pollingResultID string, fundingID string, ticketID string, tokenType string, sellStage string) (*Token1155, error) {
 
 	// Token 생성
 	token := Token1155{
 		TokenNumber:      tokenNumber,
+		Owner:            owner,
 		CategoryCode:     categoryCode,
 		FundingID:        fundingID,
 		PollingResultID:  pollingResultID,
@@ -85,16 +87,18 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		return nil, fmt.Errorf("failed to put state: %v", err)
 	}
 
-	// 사용자의 ownedToken 필드에 토큰 추가(닉네임을 고정하여 사용)
-	nickName := "(주)밈비" // 닉네임을 고정
-	user, err := c.GetUser(ctx, nickName)
+	// 사용자의 ownedToken 필드에 토큰 추가
+	user, err := c.GetUser(ctx, owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user information: %v", err)
 	}
 
 	user.OwnedToken = append(user.OwnedToken, tokenID)
 
-	userKey := nickName
+	userKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{owner})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create composite key for user: %v", err)
+	}
 	userBytes, err := json.Marshal(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal user information: %v", err)
@@ -299,6 +303,35 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	}
 	if err := ctx.GetStub().PutState(toUserKey, toUserBytes); err != nil {
 		return fmt.Errorf("failed to update receiver balance: %v", err)
+	}
+
+	// 토큰 정보 가져오기
+	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenID})
+	if err != nil {
+		return fmt.Errorf("failed to create composite key for token: %v", err)
+	}
+	tokenBytes, err := ctx.GetStub().GetState(tokenKey)
+	if err != nil {
+		return fmt.Errorf("failed to get token information: %v", err)
+	}
+	if tokenBytes == nil {
+		return fmt.Errorf("token %s does not exist", tokenID)
+	}
+
+	// 토큰의 소유자 업데이트
+	var token Token1155
+	if err := json.Unmarshal(tokenBytes, &token); err != nil {
+		return fmt.Errorf("failed to unmarshal token: %v", err)
+	}
+	token.Owner = to
+
+	// 업데이트된 토큰 정보 저장
+	tokenBytes, err = json.Marshal(token)
+	if err != nil {
+		return fmt.Errorf("failed to marshal token: %v", err)
+	}
+	if err := ctx.GetStub().PutState(tokenKey, tokenBytes); err != nil {
+		return fmt.Errorf("failed to update token owner: %v", err)
 	}
 
 	// 트랜잭션 성공적으로 기록 확인
