@@ -21,7 +21,7 @@ type Token1155 struct {
 	TicketID         string    `json:"TicketID"`
 	TokenType        string    `json:"TokenType"`
 	SellStage        string    `json:"sellStage"`
-	imageURL         string    `json:"imageURL"`
+	ImageURL         string    `json:"imageURL"`
 	TokenCreatedTime time.Time `json:"TokenCreatedTime"`
 }
 
@@ -69,7 +69,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		TicketID:         ticketID,
 		TokenType:        tokenType,
 		SellStage:        sellStage,
-		imageURL:         imageURL,
+		ImageURL:         imageURL,
 		TokenCreatedTime: time.Now(), // 현재 시간 사용
 	}
 
