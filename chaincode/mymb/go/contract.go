@@ -95,7 +95,13 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		return nil, fmt.Errorf("failed to get user information: %v", err)
 	}
 
+	// 사용자 정보 업데이트 전 출력
+	fmt.Printf("User before update: %+v\n", user)
+
 	user.OwnedToken = append(user.OwnedToken, tokenNumber)
+
+	// 사용자 정보 업데이트 후 출력
+	fmt.Printf("User after update: %+v\n", user)
 
 	userKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{owner})
 	if err != nil {
@@ -108,6 +114,17 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 	if err := ctx.GetStub().PutState(userKey, userBytes); err != nil {
 		return nil, fmt.Errorf("failed to update user information: %v", err)
 	}
+
+	// 상태 업데이트 확인
+	updatedUserBytes, err := ctx.GetStub().GetState(userKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get updated user information: %v", err)
+	}
+	var updatedUser User
+	if err := json.Unmarshal(updatedUserBytes, &updatedUser); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal updated user information: %v", err)
+	}
+	fmt.Printf("Updated user state: %+v\n", updatedUser)
 
 	return &token, nil
 }
@@ -265,11 +282,6 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("failed to get receiver information: %v", err)
 	}
 
-	// 송신자와 수신자가 동일한 경우 처리
-	if from == to {
-		return fmt.Errorf("sender and receiver cannot be the same user")
-	}
-
 	// 송신자가 보유한 토큰 중에서 전송할 토큰을 찾기
 	found := false
 	for _, t := range fromUser.OwnedToken {
@@ -278,6 +290,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 			break
 		}
 	}
+
 	if !found {
 		return fmt.Errorf("sender %s does not own the specified token %s", from, tokenNumber)
 	}
@@ -326,6 +339,8 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	if err := json.Unmarshal(tokenBytes, &token); err != nil {
 		return fmt.Errorf("failed to unmarshal token: %v", err)
 	}
+
+	// 토큰의 Owner 필드를 'to'로 변경
 	token.Owner = to
 
 	// 업데이트된 토큰 정보 저장
