@@ -103,10 +103,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 	// 사용자 정보 업데이트 후 출력
 	fmt.Printf("User after update: %+v\n", user)
 
-	userKey, err := ctx.GetStub().CreateCompositeKey(balancePrefix, []string{owner})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create composite key for user: %v", err)
-	}
+	userKey := owner // 닉네임을 키로 사용
 	userBytes, err := json.Marshal(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal user information: %v", err)
