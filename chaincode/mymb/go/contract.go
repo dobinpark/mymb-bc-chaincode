@@ -511,6 +511,12 @@ func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterfa
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal user block: %v", err)
 	}
+
+	// OwnedToken 필드가 nil인 경우 빈 배열로 초기화
+	if user.OwnedToken == nil {
+		user.OwnedToken = []string{}
+	}
+
 	return &user, nil
 }
 
