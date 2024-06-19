@@ -494,6 +494,33 @@ func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContex
 	return nil
 }
 
+// 모든 유저 정보 블록을 삭제하는 함수
+func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionContextInterface) error {
+
+	// 전체 유저 상태 조회
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return fmt.Errorf("failed to get state by range: %v", err)
+	}
+	defer resultsIterator.Close()
+
+	// 각 유저 상태 삭제
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return fmt.Errorf("failed to get next query response: %v", err)
+		}
+
+		err = ctx.GetStub().DelState(queryResponse.Key)
+		if err != nil {
+			return fmt.Errorf("failed to delete user block: %v", err)
+		}
+	}
+
+	fmt.Println("All user blocks have been successfully deleted.")
+	return nil
+}
+
 // 해당 유저 정보를 조회하는 함수
 func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterface, nickName string) (*User, error) {
 
