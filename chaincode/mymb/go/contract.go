@@ -528,7 +528,11 @@ func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterfa
 		return nil, fmt.Errorf("failed to read user block: %v", err)
 	}
 	if userBytes == nil {
-		return nil, fmt.Errorf("user with nickname %s does not exist", nickName)
+		// 존재하지 않는 사용자인 경우 빈 User 객체를 반환
+		return &User{
+			NickName:   nickName,
+			OwnedToken: []string{},
+		}, nil
 	}
 
 	var user User
