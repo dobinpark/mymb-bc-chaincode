@@ -467,10 +467,11 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 }
 
 // 유저 정보 블록을 생성하는 함수
-func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface, nickname string, mymPoint int64, ownedToken []string) error {
+func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface, userId string, nickname string, mymPoint int64, ownedToken []string) error {
 
 	// User 생성
 	user := User{
+		UserId:           userId,
 		NickName:         nickname,
 		MymPoint:         mymPoint,
 		OwnedToken:       ownedToken,
@@ -478,7 +479,7 @@ func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContex
 	}
 
 	// User 블록 저장
-	userKey := nickname // 닉네임을 키로 사용
+	userKey := userId // 유저ID를 키로 사용
 	userBytes, err := json.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("failed to marshal user block: %v", err)
