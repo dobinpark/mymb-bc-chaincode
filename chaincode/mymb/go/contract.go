@@ -13,23 +13,23 @@ type TokenERC1155Contract struct {
 }
 
 type Token1155 struct {
-	TokenNumber      string    `json:"TokenNumber"`
-	Owner            string    `json:"Owner"`
-	CategoryCode     string    `json:"CategoryCode"`
-	FundingID        string    `json:"FundingID"`
-	TicketID         string    `json:"TicketID"`
-	TokenType        string    `json:"TokenType"`
+	TokenNumber      string    `json:"tokenNumber"`
+	Owner            string    `json:"owner"`
+	CategoryCode     string    `json:"categoryCode"`
+	FundingID        string    `json:"fundingID"`
+	TicketID         string    `json:"ticketID"`
+	TokenType        string    `json:"tokenType"`
 	SellStage        string    `json:"sellStage"`
 	ImageURL         string    `json:"imageURL"`
-	TokenCreatedTime time.Time `json:"TokenCreatedTime"`
+	TokenCreatedTime time.Time `json:"tokenCreatedTime"`
 }
 
 type User struct {
-	UserId           string    `json:"UserID"`
-	NickName         string    `json:"NickName"`
-	MymPoint         int64     `json:"MymPoint"`
-	OwnedToken       []string  `json:"OwnedToken"`
-	BlockCreatedTime time.Time `json:"BlockCreatedTime"`
+	UserId           string    `json:"userID"`
+	NickName         string    `json:"nickName"`
+	MymPoint         int64     `json:"mymPoint"`
+	OwnedToken       []string  `json:"ownedToken"`
+	BlockCreatedTime time.Time `json:"blockCreatedTime"`
 }
 
 type TransferRequest struct {
@@ -39,13 +39,13 @@ type TransferRequest struct {
 }
 
 type QueryResultToken struct {
-	Key    string    `json:"Key"`
-	Record Token1155 `json:"Record"`
+	Key    string    `json:"key"`
+	Record Token1155 `json:"record"`
 }
 
 type QueryResultUser struct {
-	Key    string `json:"Key"`
-	Record User   `json:"Record"`
+	Key    string `json:"key"`
+	Record User   `json:"record"`
 }
 
 const (
@@ -467,19 +467,19 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 }
 
 // CreateUserBlock 유저 정보 블록을 생성하는 함수
-func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface, userId string, nickname string, mymPoint int64, ownedToken []string) error {
+func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface, userId string, nickName string, mymPoint int64, ownedToken []string) error {
 
 	// User 생성
 	user := User{
 		UserId:           userId,
-		NickName:         nickname,
+		NickName:         nickName,
 		MymPoint:         mymPoint,
 		OwnedToken:       ownedToken,
 		BlockCreatedTime: time.Now(),
 	}
 
 	// User 블록 저장
-	userKey := userId // 유저ID를 키로 사용
+	userKey := nickName // nickName을 키로 사용
 	userBytes, err := json.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("failed to marshal user block: %v", err)
