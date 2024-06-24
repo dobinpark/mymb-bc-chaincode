@@ -522,11 +522,13 @@ func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionCo
 // GetUser 해당 유저 정보를 조회하는 함수
 func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterface, nickName string) (*User, error) {
 
-	userKey := nickName // 닉네임을 키로 사용
+	// 닉네임을 UTF-8로 인코딩
+	userKey := nickName
 	userBytes, err := ctx.GetStub().GetState(userKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read user block: %v", err)
 	}
+
 	if userBytes == nil {
 		// 존재하지 않는 사용자인 경우 빈 User 객체를 반환
 		return &User{
