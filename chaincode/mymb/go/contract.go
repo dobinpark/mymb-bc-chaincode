@@ -588,6 +588,7 @@ func (c *TokenERC1155Contract) DeleteUser(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("failed to read user block: %v", err)
 	}
 	if userBytes == nil {
+		// 존재하지 않는 사용자인 경우 빈 User 객체를 반환
 		return fmt.Errorf("user with nickname %s does not exist", nickName)
 	}
 
