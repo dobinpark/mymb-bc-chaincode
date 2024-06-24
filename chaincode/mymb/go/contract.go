@@ -492,33 +492,6 @@ func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContex
 	return nil
 }
 
-// DeleteAllUserBlocks 모든 유저 정보 블록을 삭제하는 함수
-func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionContextInterface) error {
-
-	// 전체 유저 상태 조회
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-	if err != nil {
-		return fmt.Errorf("failed to get state by range: %v", err)
-	}
-	defer resultsIterator.Close()
-
-	// 각 유저 상태 삭제
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return fmt.Errorf("failed to get next query response: %v", err)
-		}
-
-		err = ctx.GetStub().DelState(queryResponse.Key)
-		if err != nil {
-			return fmt.Errorf("failed to delete user block: %v", err)
-		}
-	}
-
-	fmt.Println("All user blocks have been successfully deleted.")
-	return nil
-}
-
 // GetUser 해당 유저 정보를 조회하는 함수
 func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterface, nickName string) (*User, error) {
 
@@ -602,6 +575,56 @@ func (c *TokenERC1155Contract) GetTotalUsers(ctx contractapi.TransactionContextI
 	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d users\n", totalCount)
 	return totalCount, nil
+}
+
+// DeleteUser 해당 닉네임을 가진 유저 블록을 삭제하는 함수
+func (c *TokenERC1155Contract) DeleteUser(ctx contractapi.TransactionContextInterface, nickName string) error {
+	// 닉네임을 키로 사용
+	userKey := nickName
+
+	// 유저가 존재하는지 확인
+	userBytes, err := ctx.GetStub().GetState(userKey)
+	if err != nil {
+		return fmt.Errorf("failed to read user block: %v", err)
+	}
+	if userBytes == nil {
+		return fmt.Errorf("user with nickname %s does not exist", nickName)
+	}
+
+	// 유저 블록 삭제
+	err = ctx.GetStub().DelState(userKey)
+	if err != nil {
+		return fmt.Errorf("failed to delete user block: %v", err)
+	}
+
+	return nil
+}
+
+// DeleteAllUserBlocks 모든 유저 정보 블록을 삭제하는 함수
+func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionContextInterface) error {
+
+	// 전체 유저 상태 조회
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return fmt.Errorf("failed to get state by range: %v", err)
+	}
+	defer resultsIterator.Close()
+
+	// 각 유저 상태 삭제
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return fmt.Errorf("failed to get next query response: %v", err)
+		}
+
+		err = ctx.GetStub().DelState(queryResponse.Key)
+		if err != nil {
+			return fmt.Errorf("failed to delete user block: %v", err)
+		}
+	}
+
+	fmt.Println("All user blocks have been successfully deleted.")
+	return nil
 }
 
 // UpdateMymPoint 커뮤니티 활동 포인트 적립하는 함수
