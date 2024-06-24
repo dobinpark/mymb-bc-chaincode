@@ -53,7 +53,7 @@ const (
 	balancePrefix = "balance"
 )
 
-// 토큰을 발행하는 함수
+// MintToken 토큰을 발행하는 함수
 func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenNumber string, owner string,
 	categoryCode string, fundingID string, ticketID string, tokenType string, sellStage string, imageURL string) (*Token1155, error) {
 
@@ -123,7 +123,7 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 	return &token, nil
 }
 
-// 해당 토큰을 조회하는 함수
+// GetToken 해당 토큰을 조회하는 함수
 func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterface, tokenNumber string) (*Token1155, error) {
 
 	// 토큰 Number를 사용하여 토큰 키 생성
@@ -152,7 +152,7 @@ func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterf
 	return &token, nil
 }
 
-// 모든 토큰들을 조회하는 함수
+// GetAllTokens 모든 토큰들을 조회하는 함수
 func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextInterface) ([]QueryResultToken, error) {
 
 	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(tokenPrefix, []string{})
@@ -185,7 +185,7 @@ func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextIn
 	return results, nil
 }
 
-// 모든 토큰의 총 개수를 반환하는 함수
+// GetTotalTokens 모든 토큰의 총 개수를 반환하는 함수
 func (c *TokenERC1155Contract) GetTotalTokens(ctx contractapi.TransactionContextInterface) (int, error) {
 
 	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(tokenPrefix, []string{})
@@ -209,7 +209,7 @@ func (c *TokenERC1155Contract) GetTotalTokens(ctx contractapi.TransactionContext
 	return totalCount, nil
 }
 
-// 해당 유저가 가지고 있는 토큰들을 조회하는 함수
+// GetUserOwnedTokens 해당 유저가 가지고 있는 토큰들을 조회하는 함수
 func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionContextInterface, nickName string) ([]*Token1155, error) {
 
 	// 사용자 정보 조회
@@ -233,7 +233,7 @@ func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionCon
 	return ownedTokens, nil
 }
 
-// sellStage 필드값을 변경하는 함수
+// UpdateSellStage sellStage 필드값을 변경하는 함수
 func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContextInterface, tokenNumber string, newSellStage string) error {
 
 	// 토큰 조회
@@ -263,7 +263,7 @@ func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContex
 	return nil
 }
 
-// 지정된 토큰을 전송하는 함수
+// TransferToken 지정된 토큰을 전송하는 함수
 func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenNumber string) error {
 
 	// 송신자와 수신자의 정보 가져오기
@@ -353,7 +353,7 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 	return nil
 }
 
-// 해당 유저의 모든 토큰들을 전송하는 함수
+// TransferAllTokens 해당 유저의 모든 토큰들을 전송하는 함수
 func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionContextInterface, from string, to string) error {
 
 	// 발신자 사용자 정보 조회
@@ -395,7 +395,7 @@ func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionCont
 	return nil
 }
 
-// 지정된 토큰들을 삭제하는 함수
+// DeleteTokens 지정된 토큰들을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenNumbers []string) error {
 	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
@@ -430,7 +430,7 @@ func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextIn
 	return nil
 }
 
-// 해당 유저가 가지고 있는 모든 토큰들을 삭제하는 함수
+// DeleteAllTokens 해당 유저가 가지고 있는 모든 토큰들을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContextInterface, nickName string) error {
 	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
@@ -466,7 +466,7 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 	return nil
 }
 
-// 유저 정보 블록을 생성하는 함수
+// CreateUserBlock 유저 정보 블록을 생성하는 함수
 func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface, userId string, nickname string, mymPoint int64, ownedToken []string) error {
 
 	// User 생성
@@ -492,7 +492,7 @@ func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContex
 	return nil
 }
 
-// 모든 유저 정보 블록을 삭제하는 함수
+// DeleteAllUserBlocks 모든 유저 정보 블록을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionContextInterface) error {
 
 	// 전체 유저 상태 조회
@@ -519,7 +519,7 @@ func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionCo
 	return nil
 }
 
-// 해당 유저 정보를 조회하는 함수
+// GetUser 해당 유저 정보를 조회하는 함수
 func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterface, nickName string) (*User, error) {
 
 	userKey := nickName // 닉네임을 키로 사용
@@ -549,7 +549,7 @@ func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterfa
 	return &user, nil
 }
 
-// 모든 유저 정보를 조회하는 함수
+// GetAllUsers 모든 유저 정보를 조회하는 함수
 func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInterface) ([]User, error) {
 
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
@@ -578,7 +578,7 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 	return users, nil
 }
 
-// 모든 유저들의 total 값을 반환하는 함수
+// GetTotalUsers 모든 유저들의 total 값을 반환하는 함수
 func (c *TokenERC1155Contract) GetTotalUsers(ctx contractapi.TransactionContextInterface) (int, error) {
 
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
@@ -602,7 +602,7 @@ func (c *TokenERC1155Contract) GetTotalUsers(ctx contractapi.TransactionContextI
 	return totalCount, nil
 }
 
-// 커뮤니티 활동 포인트 적립하는 함수
+// UpdateMymPoint 커뮤니티 활동 포인트 적립하는 함수
 func (c *TokenERC1155Contract) UpdateMymPoint(ctx contractapi.TransactionContextInterface, nickName string, delta int64) error {
 
 	// 기존 유저 정보 가져오기
