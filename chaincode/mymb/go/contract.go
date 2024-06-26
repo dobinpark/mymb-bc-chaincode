@@ -138,9 +138,9 @@ func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterf
 		return nil, fmt.Errorf("failed to get state: %v", err)
 	}
 
-	// 조회된 토큰이 없으면 에러 반환
+	// 조회된 토큰이 없으면 빈 토큰 반환
 	if tokenBytes == nil {
-		return nil, fmt.Errorf("token with Number %s does not exist", tokenNumber)
+		return &Token1155{}, nil
 	}
 
 	// 조회된 토큰을 구조체로 변환하여 반환
@@ -404,11 +404,11 @@ func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextIn
 	}
 
 	// 토큰 목록에서 지정된 토큰들 제거
-	for _, tokenNumbers := range tokenNumbers {
-		user.OwnedToken = removeToken(user.OwnedToken, tokenNumbers)
+	for _, tokenNumber := range tokenNumbers {
+		user.OwnedToken = removeToken(user.OwnedToken, tokenNumber)
 
 		// 체인코드 상태에서 토큰 삭제
-		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumbers})
+		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 		if err != nil {
 			return fmt.Errorf("failed to create composite key: %v", err)
 		}
