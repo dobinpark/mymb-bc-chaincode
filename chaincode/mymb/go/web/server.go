@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"os/exec"
+	"path/filepath"
 )
 
 // User 구조체 정의 (contract 패키지에 정의된 구조체와 동일하게 맞춰야 합니다)
@@ -47,9 +48,16 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl, err := template.ParseFiles("web/users.html")
+	// 현재 파일의 디렉토리 경로를 기준으로 상대 경로를 설정합니다.
+	tmplPath, err := filepath.Abs(filepath.Join("..", "web", "users.html"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to get absolute path: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	tmpl, err := template.ParseFiles(tmplPath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
 		return
 	}
 
