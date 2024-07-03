@@ -1,0 +1,42 @@
+<!-- web/tokens.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>All Tokens</title>
+</head>
+<body>
+	<h1>All Tokens</h1>
+	<nav>
+		<button onclick="window.location.href='/users'">Users</button>
+		<button onclick="window.location.href='/tokens'">Tokens</button>
+	</nav>
+	<table border="1">
+		<tr>
+			<th>TokenNumber</th>
+			<th>Owner</th>
+			<th>CategoryCode</th>
+			<th>FundingID</th>
+			<th>TicketID</th>
+			<th>TokenType</th>
+			<th>SellStage</th>
+			<th>ImageURL</th>
+			<th>TokenCreatedTime</th>
+		</tr>
+		{{range .}}
+		<tr>
+			<td>{{.TokenNumber}}</td>
+			<td>{{.Owner}}</td>
+			<td>{{.CategoryCode}}</td>
+			<td>{{.FundingID}}</td>
+			<td>{{.TicketID}}</td>
+			<td>{{.TokenType}}</td>
+			<td>{{.SellStage}}</td>
+			<td>{{.ImageURL}}</td>
+			<td>{{.TokenCreatedTime}}</td>
+		</tr>
+		{{end}}
+	</table>
+</body>
+</html>

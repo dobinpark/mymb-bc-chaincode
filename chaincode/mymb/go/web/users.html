@@ -1,4 +1,4 @@
-<!-- chaincode/mymb/go/web/users.html -->
+<!-- web/users.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +8,10 @@
 </head>
 <body>
 	<h1>All Users</h1>
-	
+	<nav>
+		<button onclick="window.location.href='/users'">Users</button>
+		<button onclick="window.location.href='/tokens'">Tokens</button>
+	</nav>
 	<table border="1">
 		<tr>
 			<th>UserID</th>
