@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"os/exec"
+	"time"
 )
 
 // User 구조체 정의
@@ -19,15 +20,15 @@ type User struct {
 
 // Token 구조체 정의
 type Token struct {
-	TokenNumber      string `json:"tokenNumber"`
-	Owner            string `json:"owner"`
-	CategoryCode     string `json:"categoryCode"`
-	FundingID        string `json:"fundingID"`
-	TicketID         string `json:"ticketID"`
-	TokenType        string `json:"tokenType"`
-	SellStage        string `json:"sellStage"`
-	ImageURL         string `json:"imageURL"`
-	TokenCreatedTime string `json:"tokenCreatedTime"`
+	TokenNumber      string    `json:"tokenNumber"`
+	Owner            string    `json:"owner"`
+	CategoryCode     string    `json:"categoryCode"`
+	FundingID        string    `json:"fundingID"`
+	TicketID         string    `json:"ticketID"`
+	TokenType        string    `json:"tokenType"`
+	SellStage        string    `json:"sellStage"`
+	ImageURL         string    `json:"imageURL"`
+	TokenCreatedTime time.Time `json:"tokenCreatedTime"`
 }
 
 // Function to execute the Docker command and get users
