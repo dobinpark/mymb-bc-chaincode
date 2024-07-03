@@ -125,5 +125,5 @@ func main() {
 	http.HandleFunc("/users", usersHandler)
 	http.HandleFunc("/tokens", tokensHandler)
 	fmt.Println("Server is listening on port 8090...")
-	http.ListenAndServe(":8090", nil)
+	http.ListenAndServe(":0.0.0.0:8090", nil)
 }
