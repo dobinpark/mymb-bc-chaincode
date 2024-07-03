@@ -1,4 +1,4 @@
-package main
+package contract
 
 import (
 	"encoding/json"
@@ -93,12 +93,12 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 	}
 
 	// 사용자 정보 업데이트 전 출력
-	fmt.Printf("User before update: %+v\n", user)
+	fmt.Printf("User information before update: %+v\n", user)
 
 	user.OwnedToken = append(user.OwnedToken, tokenNumber)
 
 	// 사용자 정보 업데이트 후 출력
-	fmt.Printf("User after update: %+v\n", user)
+	fmt.Printf("User information after update: %+v\n", user)
 
 	userKey := owner // 닉네임을 키로 사용
 	userBytes, err := json.Marshal(user)

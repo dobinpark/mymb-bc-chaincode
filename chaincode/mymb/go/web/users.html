@@ -1,0 +1,31 @@
+<!-- chaincode/mymb/go/web/users.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>All Users</title>
+</head>
+<body>
+	<h1>All Users</h1>
+	
+	<table border="1">
+		<tr>
+			<th>UserID</th>
+			<th>NickName</th>
+			<th>MymPoint</th>
+			<th>OwnedToken</th>
+			<th>BlockCreatedTime</th>
+		</tr>
+		{{range .}}
+		<tr>
+			<td>{{.UserId}}</td>
+			<td>{{.NickName}}</td>
+			<td>{{.MymPoint}}</td>
+			<td>{{.OwnedToken}}</td>
+			<td>{{.BlockCreatedTime}}</td>
+		</tr>
+		{{end}}
+	</table>
+</body>
+</html>
