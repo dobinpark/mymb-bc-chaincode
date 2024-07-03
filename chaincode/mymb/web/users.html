@@ -25,10 +25,26 @@
 			<td>{{.UserId}}</td>
 			<td>{{.NickName}}</td>
 			<td>{{.MymPoint}}</td>
-			<td>{{.OwnedToken}}</td>
+			<td>
+				<button onclick="toggleVisibility('tokens-{{.UserId}}')">Toggle Tokens</button>
+				<div id="tokens-{{.UserId}}" class="hidden">
+					{{.OwnedToken}}
+				</div>
+			</td>
 			<td>{{.BlockCreatedTime}}</td>
 		</tr>
 		{{end}}
 	</table>
+	
+	<script>
+		function toggleVisibility(id) {
+			const element = document.getElementById(id);
+			if (element.classList.contains('hidden')) {
+				element.classList.remove('hidden');
+			} else {
+				element.classList.add('hidden');
+			}
+		}
+	</script>
 </body>
 </html>
