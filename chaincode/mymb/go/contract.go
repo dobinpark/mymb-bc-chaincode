@@ -32,22 +32,6 @@ type User struct {
 	BlockCreatedTime time.Time `json:"blockCreatedTime"`
 }
 
-type TransferRequest struct {
-	From         string   `json:"from"`
-	To           string   `json:"to"`
-	TokenNumbers []string `json:"tokenNumbers"`
-}
-
-type QueryResultToken struct {
-	Key    string    `json:"key"`
-	Record Token1155 `json:"record"`
-}
-
-type QueryResultUser struct {
-	Key    string `json:"key"`
-	Record User   `json:"record"`
-}
-
 const (
 	tokenPrefix   = "token"
 	balancePrefix = "balance"
@@ -153,7 +137,7 @@ func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterf
 }
 
 // GetAllTokens 모든 토큰들을 조회하는 함수
-func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextInterface) ([]QueryResultToken, error) {
+func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextInterface) ([]Token1155, error) {
 
 	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(tokenPrefix, []string{})
 	if err != nil {
@@ -161,7 +145,7 @@ func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextIn
 	}
 	defer resultsIterator.Close()
 
-	var results []QueryResultToken
+	var tokens []Token1155
 
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
@@ -175,14 +159,12 @@ func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextIn
 			return nil, fmt.Errorf("failed to unmarshal token: %v", err)
 		}
 
-		results = append(results, QueryResultToken{
-			Key:    queryResponse.Key,
-			Record: token,
-		})
+		tokens = append(tokens, token)
 	}
+
 	// 총 개수를 로그에 출력
-	fmt.Printf("total: %d tokens\n", len(results))
-	return results, nil
+	fmt.Printf("total: %d tokens\n", len(tokens))
+	return tokens, nil
 }
 
 // GetTotalTokens 모든 토큰의 총 개수를 반환하는 함수
