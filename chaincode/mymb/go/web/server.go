@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"net/http"
 	"os/exec"
-	"strings"
 )
 
 // User 구조체 정의 (contract 패키지에 정의된 구조체와 동일하게 맞춰야 합니다)
@@ -20,13 +19,13 @@ type User struct {
 
 // Function to execute the Docker command and get users
 func getAllUsers() ([]User, error) {
-
-	// fmt.Sprintf를 사용하여 포맷된 문자열 생성
-	cmdStr := fmt.Sprintf("docker exec cli peer chaincode query --tls --cafile /opt/home/managedblockchain-tls-chain.pem --channelID mychannel --name mycc -c '{\"Args\":[\"GetAllUsers\"]}'")
-	cmdArgs := strings.Fields(cmdStr)
-
 	// exec.Command를 사용하여 명령어 실행
-	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+	cmd := exec.Command("docker", "exec", "cli", "peer", "chaincode", "query",
+		"--tls", "--cafile", "/opt/home/managedblockchain-tls-chain.pem",
+		"--channelID", "mychannel",
+		"--name", "mycc",
+		"-c", "{\"Args\":[\"GetAllUsers\"]}")
+
 	output, err := cmd.CombinedOutput() // CombinedOutput 사용하여 표준 출력과 표준 오류를 모두 캡처
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute chaincode: %v, output: %s", err, string(output))
