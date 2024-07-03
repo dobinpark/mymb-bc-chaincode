@@ -6,11 +6,19 @@ import (
 	"html/template"
 	"net/http"
 	"os/exec"
-	"path/filepath"
 )
 
+// User 구조체 정의
+type User struct {
+	UserId           string   `json:"userID"`
+	NickName         string   `json:"nickName"`
+	MymPoint         int64    `json:"mymPoint"`
+	OwnedToken       []string `json:"ownedToken"`
+	BlockCreatedTime string   `json:"blockCreatedTime"`
+}
+
 // Token 구조체 정의
-type Token1155 struct {
+type Token struct {
 	TokenNumber      string `json:"tokenNumber"`
 	Owner            string `json:"owner"`
 	CategoryCode     string `json:"categoryCode"`
@@ -22,25 +30,15 @@ type Token1155 struct {
 	TokenCreatedTime string `json:"tokenCreatedTime"`
 }
 
-// User 구조체 정의
-type User struct {
-	UserId           string   `json:"userID"`
-	NickName         string   `json:"nickName"`
-	MymPoint         int64    `json:"mymPoint"`
-	OwnedToken       []string `json:"ownedToken"`
-	BlockCreatedTime string   `json:"blockCreatedTime"`
-}
-
 // Function to execute the Docker command and get users
 func getAllUsers() ([]User, error) {
-	// exec.Command를 사용하여 명령어 실행
 	cmd := exec.Command("docker", "exec", "cli", "peer", "chaincode", "query",
 		"--tls", "--cafile", "/opt/home/managedblockchain-tls-chain.pem",
 		"--channelID", "mychannel",
 		"--name", "mycc",
 		"-c", "{\"Args\":[\"GetAllUsers\"]}")
 
-	output, err := cmd.CombinedOutput() // CombinedOutput 사용하여 표준 출력과 표준 오류를 모두 캡처
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute chaincode: %v, output: %s", err, string(output))
 	}
@@ -54,7 +52,7 @@ func getAllUsers() ([]User, error) {
 }
 
 // Function to execute the Docker command and get tokens
-func getAllTokens() ([]Token1155, error) {
+func getAllTokens() ([]Token, error) {
 	cmd := exec.Command("docker", "exec", "cli", "peer", "chaincode", "query",
 		"--tls", "--cafile", "/opt/home/managedblockchain-tls-chain.pem",
 		"--channelID", "mychannel",
@@ -66,7 +64,7 @@ func getAllTokens() ([]Token1155, error) {
 		return nil, fmt.Errorf("failed to execute chaincode: %v, output: %s", err, string(output))
 	}
 
-	var tokens []Token1155
+	var tokens []Token
 	err = json.Unmarshal(output, &tokens)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
@@ -82,13 +80,7 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 현재 파일의 디렉토리 경로를 기준으로 상대 경로를 설정합니다.
-	tmplPath, err := filepath.Abs(filepath.Join("..", "web", "users.html"))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to get absolute path: %v", err), http.StatusInternalServerError)
-		return
-	}
-
+	tmplPath := "users.html"
 	tmpl, err := template.ParseFiles(tmplPath)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
@@ -106,12 +98,7 @@ func tokensHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmplPath, err := filepath.Abs(filepath.Join("web", "tokens.html"))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to get absolute path: %v", err), http.StatusInternalServerError)
-		return
-	}
-
+	tmplPath := "tokens.html"
 	tmpl, err := template.ParseFiles(tmplPath)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
