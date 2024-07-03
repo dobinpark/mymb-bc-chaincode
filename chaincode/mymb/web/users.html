@@ -5,6 +5,11 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>All Users</title>
+	<style>
+		.hidden {
+			display: none;
+		}
+	</style>
 </head>
 <body>
 	<h1>All Users</h1>
@@ -27,9 +32,11 @@
 			<td>{{.MymPoint}}</td>
 			<td>
 				<button onclick="toggleVisibility('tokens-{{.UserId}}')">Toggle Tokens</button>
-				<div id="tokens-{{.UserId}}" class="hidden">
-					{{.OwnedToken}}
-				</div>
+				<ul id="tokens-{{.UserId}}" class="hidden">
+					{{range .OwnedToken}}
+					<li>{{.}}</li>
+					{{end}}
+				</ul>
 			</td>
 			<td>{{.BlockCreatedTime}}</td>
 		</tr>
