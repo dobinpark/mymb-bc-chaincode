@@ -110,6 +110,7 @@
 		</div>
 		
 		<table border="1">
+			<thead>
 			<tr>
 				<th>TokenNumber</th>
 				<th>Owner</th>
@@ -121,6 +122,8 @@
 				<th>ImageURL</th>
 				<th>TokenCreatedTime</th>
 			</tr>
+			</thead>
+			<tbody>
 			{{range .}}
 			<tr>
 				<td>{{.TokenNumber}}</td>
@@ -134,6 +137,7 @@
 				<td>{{.TokenCreatedTime}}</td>
 			</tr>
 			{{end}}
+			</tbody>
 		</table>
 		<!-- 페이징 버튼 -->
 		<div class="pagination">
@@ -144,14 +148,6 @@
 	</div>
 	
 	<script>
-		function toggleVisibility(id) {
-			const element = document.getElementById(id);
-			if (element.classList.contains('hidden')) {
-				element.classList.remove('hidden');
-			} else {
-				element.classList.add('hidden');
-			}
-		}
 		
 		// 검색 기능
 		function searchTable() {
