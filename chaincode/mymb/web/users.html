@@ -163,11 +163,11 @@
 			table = document.querySelector("table");
 			tr = table.getElementsByTagName("tr");
 			
-			for (i = 0; i < tr.length; i++) {
+			for (i = 1; i < tr.length; i++) { // 첫 번째 tr (헤더) 제외
 				td = tr[i].getElementsByTagName("td")[1]; // 검색할 열 (nickName 열)
 				if (td) {
 					txtValue = td.getAttribute("data-original-text"); // 실제 닉네임을 가져옴
-					if (txtValue.indexOf(filter) > -1) {
+					if (txtValue && txtValue.indexOf(filter) > -1) {
 						tr[i].style.display = "";
 					} else {
 						tr[i].style.display = "none";
@@ -177,11 +177,7 @@
 			
 			// 만약 검색어가 비어 있다면 20개의 td만 보여줌
 			if (filter === "") {
-				var table = document.querySelector("table");
-				var tr = table.getElementsByTagName("tr");
-				for (i = 0; i < tr.length; i++) {
-					tr[i].style.display = i < rows ? "" : "none";
-				}
+				displayRows();
 			}
 		}
 		
