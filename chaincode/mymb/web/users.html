@@ -9,14 +9,106 @@
 		.hidden {
 			display: none;
 		}
+		.header {
+			margin: 100px;
+		}
+		
+		.body {
+			margin: 20px;
+			background-color: black;
+			color: white;
+		}
+		
+		/* 테이블 스타일 */
+		table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+		
+		/* 테이블 헤더 스타일 */
+		thead th {
+			background-color: #f2f2f2;
+			border: 1px solid #dddddd;
+			text-align: left;
+			padding: 8px;
+		}
+		
+		/* 테이블 데이터 행 스타일 */
+		tbody td {
+			border: 1px solid #dddddd;
+			text-align: left;
+			padding: 8px;
+		}
+		
+		.footer {
+			margin: 20px;
+		}
+		
+		/* 검색 창 스타일 */
+		.search-container {
+			margin-bottom: 10px;
+		}
+		
+		/* 페이징 버튼 스타일 */
+		.pagination {
+			display: flex;
+			color: white;
+			justify-content: center;
+		}
+		
+		.pagination a {
+			color: white;
+			float: left;
+			padding: 8px 16px;
+			text-decoration: none;
+			transition: background-color .3s;
+			border: 1px solid #ddd;
+			margin: 0 4px;
+		}
+		
+		.pagination a.active {
+			background-color: #007bff;
+			color: white;
+			border: 1px solid #007bff;
+		}
+		
+		.pagination a:hover:not(.active) {
+			background-color: #ddd;
+		}
+		
+		/* 검색 버튼 스타일 */
+		#searchButton {
+			padding: 8px 16px;
+			background-color: #007bff;
+			color: white;
+			border: none;
+			cursor: pointer;
+		}
+		
+		#searchButton:hover {
+			background-color: #0056b3;
+		}
+		
+		/* 검색 창 텍스트 색상 */
+		#searchInput {
+			color: black; /* 텍스트 색상을 검은색으로 설정 */
+		}
 	</style>
 </head>
 <body>
+<div class="body">
 	<h1>All Users</h1>
 	<nav>
 		<button onclick="window.location.href='/users'">Users</button>
 		<button onclick="window.location.href='/tokens'">Tokens</button>
 	</nav>
+	
+	<!-- 검색 창 -->
+	<div class="search-container">
+		<input type="text" id="searchInput" placeholder="닉네임을 검색하세요.">
+		<button onclick="searchTable()" id="searchButton">검색</button> <!-- 검색 버튼에 스타일 적용 -->
+	</div>
+	
 	<table border="1">
 		<tr>
 			<th>UserID</th>
@@ -42,7 +134,14 @@
 		</tr>
 		{{end}}
 	</table>
-	
+	<!-- 페이징 버튼 -->
+	<div class="pagination">
+		<a href="#" id="prevPage">이전</a>
+		<span id="pageNumbers"></span> <!-- 페이지 번호를 표시할 공간 추가 -->
+		<a href="#" id="nextPage">다음</a>
+	</div>
+</div>
+
 	<script>
 		function toggleVisibility(id) {
 			const element = document.getElementById(id);
@@ -52,6 +151,183 @@
 				element.classList.add('hidden');
 			}
 		}
+		
+		// 검색 기능
+		function searchTable() {
+			var input, filter, table, tr, td, i, txtValue;
+			input = document.getElementById("searchInput");
+			filter = input.value;
+			table = document.querySelector("table");
+			tr = table.getElementsByTagName("tr");
+			
+			for (i = 0; i < tr.length; i++) {
+				td = tr[i].getElementsByTagName("td")[0]; // 검색할 열 (nickName 열)
+				if (td) {
+					txtValue = td.getAttribute("data-original-text"); // 실제 닉네임을 가져옴
+					if (txtValue.indexOf(filter) > -1) {
+						tr[i].style.display = "";
+					} else {
+						tr[i].style.display = "none";
+					}
+				}
+			}
+			
+			// 만약 검색어가 비어 있다면 20개의 td만 보여줌
+			if (filter === "") {
+				var table = document.querySelector("table");
+				var tr = table.getElementsByTagName("tr");
+				for (i = 0; i < tr.length; i++) {
+					tr[i].style.display = i < rows ? "" : "none";
+				}
+			}
+		}
+		
+		// 표시할 텍스트를 가공하는 함수
+		function maskNicknames() {
+			var table = document.querySelector("table");
+			var tr = table.getElementsByTagName("tr");
+			
+			for (var i = 0; i < tr.length; i++) {
+				var td = tr[i].getElementsByTagName("td")[1]; // nickName이 들어있는 열
+				if (td) {
+					var originalText = td.textContent || td.innerText;
+					var maskedText = "";
+					
+					if (/[\u3131-\uD79D]/.test(originalText)) { // 한글인 경우
+						maskedText += originalText[0]; // 첫 번째 글자
+						for (var j = 1; j < originalText.length; j++) {
+							maskedText += "*"; // 나머지 글자는 '*'
+						}
+					} else if (/[a-zA-Z0-9]/.test(originalText)) { // 영문 또는 숫자인 경우
+						maskedText += originalText.substring(0, 3); // 처음 3글자
+						for (var j = 3; j < originalText.length; j++) {
+							maskedText += "*"; // 나머지 글자는 '*'
+						}
+					} else {
+						maskedText = originalText;
+					}
+					
+					td.textContent = maskedText;
+					td.setAttribute("data-original-text", originalText); // 원본 텍스트를 저장
+				}
+			}
+		}
+		
+		// 페이지 관리 변수
+		var currentPage = 1;
+		var rows = 20; // 페이지당 표시할 행 수
+		
+		// 표시할 행 범위 계산
+		function displayRows() {
+			var table = document.querySelector("table");
+			var tbody = table.querySelector("tbody");
+			var tr = tbody.getElementsByTagName("tr");
+			
+			// 표시할 행 범위 계산
+			var startIndex = (currentPage - 1) * rows;
+			var endIndex = Math.min(startIndex + rows, tr.length);
+			
+			// 모든 행 숨기기
+			for (var i = 0; i < tr.length; i++) {
+				tr[i].style.display = "none";
+			}
+			
+			// 현재 페이지에 해당하는 행만 표시
+			for (var i = startIndex; i < endIndex; i++) {
+				if (tr[i]) {
+					tr[i].style.display = "";
+				}
+			}
+		}
+		
+		// 이전 페이지로 이동
+		document.getElementById("prevPage").addEventListener("click", function () {
+			if (currentPage > 1) {
+				currentPage--;
+				displayRows();
+				generatePageNumbers();
+			}
+		});
+		
+		// 다음 페이지로 이동
+		document.getElementById("nextPage").addEventListener("click", function () {
+			var table = document.querySelector("table");
+			var tbody = table.querySelector("tbody"); // tbody를 선택합니다.
+			var tr = tbody.getElementsByTagName("tr"); // tbody 내부의 tr 요소만 선택합니다.
+			
+			var startIndex = (currentPage - 1) * rows;
+			var endIndex = startIndex + rows;
+			
+			if (endIndex < tr.length) {
+				currentPage++;
+				displayRows();
+				generatePageNumbers();
+			}
+		});
+		
+		// 페이지 번호를 동적으로 생성하는 함수
+		function generatePageNumbers() {
+			var table = document.querySelector("table");
+			var tr = table.getElementsByTagName("tr");
+			
+			// 전체 페이지 수 계산
+			var totalPage = Math.ceil(tr.length / rows);
+			
+			// 페이지 번호를 담을 배열 생성
+			var pageNumbers = [];
+			
+			// 현재 페이지 번호를 중심으로 1, 2, 3, 4, 5 페이지 번호 생성
+			var startPage = currentPage - 2;
+			var endPage = currentPage + 2;
+			
+			// 첫 번째 페이지부터 시작하도록 조정
+			if (startPage < 1) {
+				startPage = 1;
+				endPage = Math.min(totalPage, 5);
+			}
+			
+			// 마지막 페이지에 도달하면 끝까지 표시하도록 조정
+			if (endPage > totalPage) {
+				endPage = totalPage;
+				startPage = Math.max(1, totalPage - 4);
+			}
+			
+			// 페이지 번호를 배열에 추가
+			for (var i = startPage; i <= endPage; i++) {
+				pageNumbers.push(i);
+			}
+			
+			var pageNumbersHtml = "";
+			
+			// 현재 페이지 번호를 강조하여 표시
+			for (var i = 0; i < pageNumbers.length; i++) {
+				if (pageNumbers[i] === currentPage) {
+					pageNumbersHtml += '<a href="#" class="page-number active" data-page="' + pageNumbers[i] + '">' + pageNumbers[i] + '</a>';
+				} else {
+					pageNumbersHtml += '<a href="#" class="page-number" data-page="' + pageNumbers[i] + '">' + pageNumbers[i] + '</a>';
+				}
+			}
+			
+			document.getElementById("pageNumbers").innerHTML = pageNumbersHtml;
+			
+			// 각 페이지 번호나 "이전", "다음"을 클릭했을 때 해당 페이지로 이동하는 이벤트 처리
+			var pageNumberElements = document.querySelectorAll(".page-number");
+			for (var i = 0; i < pageNumberElements.length; i++) {
+				pageNumberElements[i].addEventListener("click", function (event) {
+					var clickedPage = event.target.getAttribute("data-page");
+					if (!isNaN(parseInt(clickedPage))) {
+						currentPage = parseInt(clickedPage);
+					}
+					displayRows();
+					generatePageNumbers();
+				});
+			}
+		}
+		
+		// 초기 표시
+		maskNicknames();
+		displayRows();
+		generatePageNumbers();
 	</script>
 </body>
 </html>
