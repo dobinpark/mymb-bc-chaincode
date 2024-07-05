@@ -170,8 +170,18 @@ func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 필터링된 필드만 포함하도록 설정
+	var filteredReferrals []FundingReferral
+	for _, referral := range referrals {
+		filteredReferrals = append(filteredReferrals, FundingReferral{
+			ReferralPayback: referral.ReferralPayback,
+			ReferralFrom:    referral.ReferralFrom,
+			ReferralTo:      referral.ReferralTo,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(referrals)
+	json.NewEncoder(w).Encode(filteredReferrals)
 }
 
 func main() {
