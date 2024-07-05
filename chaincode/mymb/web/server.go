@@ -19,8 +19,8 @@ const (
 	collection = "fundingReferral"
 )
 
-// User 구조체 정의
-type User struct {
+// BCUser 구조체 정의
+type BCUser struct {
 	UserId           string   `json:"userID"`
 	NickName         string   `json:"nickName"`
 	MymPoint         int64    `json:"mymPoint"`
@@ -52,15 +52,8 @@ type FundingReferral struct {
 	IsPaybacked            bool   `json:"isPaybacked"`
 }
 
-// FundingReferral 구조체 정의
-type FundingReferral1 struct {
-	ReferralPayback int    `json:"referralPayback"`
-	ReferralFrom    string `json:"referralFrom"`
-	ReferralTo      string `json:"referralTo"`
-}
-
 // Function to execute the Docker command and get users
-func getAllUsers() ([]User, error) {
+func getAllUsers() ([]BCUser, error) {
 	cmd := exec.Command("docker", "exec", "cli", "peer", "chaincode", "query",
 		"--tls", "--cafile", "/opt/home/managedblockchain-tls-chain.pem",
 		"--channelID", "mychannel",
@@ -72,7 +65,7 @@ func getAllUsers() ([]User, error) {
 		return nil, fmt.Errorf("failed to execute chaincode: %v, output: %s", err, string(output))
 	}
 
-	var users []User
+	var users []BCUser
 	err = json.Unmarshal(output, &users)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
@@ -102,7 +95,7 @@ func getAllTokens() ([]Token, error) {
 }
 
 // MongoDB에서 FundingReferral 데이터를 가져오는 함수
-func getFundingReferrals() ([]FundingReferral1, error) {
+func getFundingReferrals() ([]FundingReferral, error) {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
@@ -116,9 +109,9 @@ func getFundingReferrals() ([]FundingReferral1, error) {
 	}
 	defer cur.Close(context.TODO())
 
-	var referrals []FundingReferral1
+	var referrals []FundingReferral
 	for cur.Next(context.TODO()) {
-		var referral FundingReferral1
+		var referral FundingReferral
 		err := cur.Decode(&referral)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode document: %v", err)
@@ -178,17 +171,17 @@ func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 필터링된 필드만 포함하도록 설정
-	var filteredReferrals []FundingReferral1
+	var customReferrals []string
 	for _, referral := range referrals {
-		filteredReferrals = append(filteredReferrals, FundingReferral1{
-			ReferralPayback: referral.ReferralPayback,
-			ReferralFrom:    referral.ReferralFrom,
-			ReferralTo:      referral.ReferralTo,
-		})
+		customReferral := fmt.Sprintf(`{"referralPayback": %d, "%s", "%s"}`, referral.ReferralPayback, referral.ReferralFrom, referral.ReferralTo)
+		customReferrals = append(customReferrals, customReferral)
 	}
 
+	// JSON 배열로 감싸기
+	finalJSON := "[" + string([]byte(fmt.Sprintf("%s", customReferrals))[1:len(customReferrals)*2-1]) + "]"
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(filteredReferrals)
+	w.Write([]byte(finalJSON))
 }
 
 func main() {
