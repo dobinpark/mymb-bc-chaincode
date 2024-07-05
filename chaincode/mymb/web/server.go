@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"html/template"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -217,8 +218,14 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	tmplPath := "users.html"
+	tmpl, err := template.ParseFiles(tmplPath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	tmpl.Execute(w, users)
 }
 
 // Handler function to display tokens
@@ -229,8 +236,14 @@ func tokensHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tokens)
+	tmplPath := "tokens.html"
+	tmpl, err := template.ParseFiles(tmplPath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	tmpl.Execute(w, tokens)
 }
 
 // Handler function to display funding referrals with emails and aggregated paybacks
@@ -241,7 +254,7 @@ func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 중복되는 referralTo에 대해 payback을 합산
+	// 중복되는 toEmail에 대해 payback을 합산
 	aggregatedPaybacks := make(map[string]map[string]interface{})
 	for _, referral := range referrals {
 		toEmail := referral["toEmail"].(string)
