@@ -16,7 +16,7 @@ import (
 const (
 	mongoURI   = "mongodb+srv://mymber:Alaql2022!@cluster-certifie.vkqpd9y.mongodb.net/?retryWrites=true&w=majority"
 	database   = "MYMB_DB"
-	collection = "FundingReferral"
+	collection = "fundingReferral"
 )
 
 // User 구조체 정의
