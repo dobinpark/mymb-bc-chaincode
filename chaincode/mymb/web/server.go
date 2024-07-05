@@ -202,7 +202,6 @@ func getFundingReferralsWithEmails() ([]map[string]interface{}, error) {
 			"toEmail":         toEmail,
 			"bankAccount":     bankAccount,
 			"bankName":        bankName,
-			"referralTo":      referral.ReferralTo, // 중복 검사 및 합산을 위해 추가
 		}
 		results = append(results, result)
 	}
@@ -245,29 +244,28 @@ func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
 	// 중복되는 referralTo에 대해 payback을 합산
 	aggregatedPaybacks := make(map[string]map[string]interface{})
 	for _, referral := range referrals {
-		referralTo := referral["referralTo"].(string)
-		referralPayback := referral["referralPayback"].(int)
 		toEmail := referral["toEmail"].(string)
+		referralPayback := referral["referralPayback"].(int)
 		bankAccount := referral["bankAccount"].(string)
 		bankName := referral["bankName"].(string)
 
-		if _, exists := aggregatedPaybacks[referralTo]; !exists {
-			aggregatedPaybacks[referralTo] = map[string]interface{}{
+		if _, exists := aggregatedPaybacks[toEmail]; !exists {
+			aggregatedPaybacks[toEmail] = map[string]interface{}{
 				"totalPayback": referralPayback,
 				"toEmail":      toEmail,
 				"bankAccount":  bankAccount,
 				"bankName":     bankName,
 			}
 		} else {
-			aggregatedPaybacks[referralTo]["totalPayback"] = aggregatedPaybacks[referralTo]["totalPayback"].(int) + referralPayback
+			aggregatedPaybacks[toEmail]["totalPayback"] = aggregatedPaybacks[toEmail]["totalPayback"].(int) + referralPayback
 		}
 	}
 
 	// 결과를 JSON으로 변환
 	var customReferrals []string
-	for referralTo, data := range aggregatedPaybacks {
-		customReferral := fmt.Sprintf(`{"referralTo": "%s", "totalPayback": %d, "toEmail": "%s", "bankAccount": "%s", "bankName": "%s"}`,
-			referralTo, data["totalPayback"].(int), data["toEmail"].(string), data["bankAccount"].(string), data["bankName"].(string))
+	for _, data := range aggregatedPaybacks {
+		customReferral := fmt.Sprintf(`{"totalPayback": %d, "toEmail": "%s", "bankAccount": "%s", "bankName": "%s"}`,
+			data["totalPayback"].(int), data["toEmail"].(string), data["bankAccount"].(string), data["bankName"].(string))
 		customReferrals = append(customReferrals, customReferral)
 	}
 
