@@ -1,12 +1,22 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"html/template"
 	"net/http"
 	"os/exec"
 	"time"
+)
+
+const (
+	mongoURI   = "mongodb+srv://mymber:Alaql2022!@cluster-certifie.vkqpd9y.mongodb.net/?retryWrites=true&w=majority"
+	database   = "MYMB_DB"
+	collection = "FundingReferral"
 )
 
 // User 구조체 정의
@@ -29,6 +39,17 @@ type Token struct {
 	SellStage        string    `json:"sellStage"`
 	ImageURL         string    `json:"imageURL"`
 	TokenCreatedTime time.Time `json:"tokenCreatedTime"`
+}
+
+// FundingReferral 구조체 정의
+type FundingReferral struct {
+	FundingReferralId      string `json:"_id"`
+	PayId                  string `json:"payId"`
+	ReferralPayback        int    `json:"referralPayback"`
+	ReferralFrom           string `json:"referralFrom"`
+	ReferralTo             string `json:"referralTo"`
+	IsBasePaymentCompleted bool   `json:"isBasePaymentCompleted"`
+	IsPaybacked            bool   `json:"isPaybacked"`
 }
 
 // Function to execute the Docker command and get users
@@ -73,6 +94,38 @@ func getAllTokens() ([]Token, error) {
 	return tokens, nil
 }
 
+// MongoDB에서 FundingReferral 데이터를 가져오는 함수
+func getFundingReferrals() ([]FundingReferral, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
+	}
+	defer client.Disconnect(context.TODO())
+
+	coll := client.Database(database).Collection(collection)
+	cur, err := coll.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to find documents: %v", err)
+	}
+	defer cur.Close(context.TODO())
+
+	var referrals []FundingReferral
+	for cur.Next(context.TODO()) {
+		var referral FundingReferral
+		err := cur.Decode(&referral)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode document: %v", err)
+		}
+		referrals = append(referrals, referral)
+	}
+
+	if err := cur.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %v", err)
+	}
+
+	return referrals, nil
+}
+
 // Handler function to display users
 func usersHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := getAllUsers()
@@ -109,9 +162,22 @@ func tokensHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, tokens)
 }
 
+// Handler function to display funding referrals
+func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
+	referrals, err := getFundingReferrals()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(referrals)
+}
+
 func main() {
 	http.HandleFunc("/users", usersHandler)
 	http.HandleFunc("/tokens", tokensHandler)
+	http.HandleFunc("/referrals", fundingReferralsHandler)
 	fmt.Println("Server is listening on port 8090...")
 	http.ListenAndServe("0.0.0.0:8090", nil)
 }
