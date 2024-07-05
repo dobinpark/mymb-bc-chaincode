@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
@@ -22,7 +23,7 @@ const (
 
 // BCUser 구조체 정의
 type BCUser struct {
-	UserId           string   `json:"userID"`
+	BCUserId         string   `json:"BCUserId"`
 	NickName         string   `json:"nickName"`
 	MymPoint         int64    `json:"mymPoint"`
 	OwnedToken       []string `json:"ownedToken"`
@@ -55,32 +56,32 @@ type FundingReferral struct {
 
 // User 구조체 정의
 type User struct {
-	ID                string    `bson:"_id"`
-	Email             string    `bson:"email"`
-	Password          string    `bson:"password"`
-	TicketCount       int       `bson:"ticketCount"`
-	ReferralCount     int       `bson:"referralCount"`
-	NickName          string    `bson:"nickName"`
-	InviterEmail      string    `bson:"inviterEmail"`
-	MainCardId        string    `bson:"mainCardId"`
-	MymId             string    `bson:"mymId"`
-	IsEnterprise      bool      `bson:"isEnterprise"`
-	CallNumber        string    `bson:"callNumber"`
-	CountryCode       string    `bson:"countryCode"`
-	BusinessNumber    string    `bson:"businessNumber"`
-	FileName          string    `bson:"fileName"`
-	UploadUrl         string    `bson:"uploadUrl"`
-	TrustUsers        []string  `bson:"trustUsers"`
-	TrustByUsers      []string  `bson:"trustByUsers"`
-	IsIdentified      bool      `bson:"isIdentified"`
-	CreatedAt         time.Time `bson:"createdAt"`
-	DeletedAt         time.Time `bson:"deletedAt"`
-	Name              string    `bson:"name"`
-	IsCertificated    bool      `bson:"isCertificated"`
-	BankAccount       string    `bson:"bankAccount"`
-	BankName          string    `bson:"bankName"`
-	AccountHolderName string    `bson:"accountHolderName"`
-	PhoneNum          string    `bson:"phoneNum"`
+	UserID            string    `json:"_id"`
+	Email             string    `json:"email"`
+	Password          string    `json:"password"`
+	TicketCount       int       `json:"ticketCount"`
+	ReferralCount     int       `json:"referralCount"`
+	NickName          string    `json:"nickName"`
+	InviterEmail      string    `json:"inviterEmail"`
+	MainCardId        string    `json:"mainCardId"`
+	MymId             string    `json:"mymId"`
+	IsEnterprise      bool      `json:"isEnterprise"`
+	CallNumber        string    `json:"callNumber"`
+	CountryCode       string    `json:"countryCode"`
+	BusinessNumber    string    `json:"businessNumber"`
+	FileName          string    `json:"fileName"`
+	UploadUrl         string    `json:"uploadUrl"`
+	TrustUsers        []string  `json:"trustUsers"`
+	TrustByUsers      []string  `json:"trustByUsers"`
+	IsIdentified      bool      `json:"isIdentified"`
+	CreatedAt         time.Time `json:"createdAt"`
+	DeletedAt         time.Time `json:"deletedAt"`
+	Name              string    `json:"name"`
+	IsCertificated    bool      `json:"isCertificated"`
+	BankAccount       string    `json:"bankAccount"`
+	BankName          string    `json:"bankName"`
+	AccountHolderName string    `json:"accountHolderName"`
+	PhoneNum          string    `json:"phoneNum"`
 }
 
 // Function to execute the Docker command and get users
@@ -166,8 +167,21 @@ func getUserEmailByID(uid string) (string, error) {
 	defer client.Disconnect(context.TODO())
 
 	coll := client.Database(database).Collection(userCollection)
+
+	// Check if uid is a valid ObjectId
+	objectID, err := primitive.ObjectIDFromHex(uid)
+	if err != nil {
+		// If not, treat uid as a string
+		var user User
+		err := coll.FindOne(context.TODO(), bson.M{"_id": uid}).Decode(&user)
+		if err != nil {
+			return "", fmt.Errorf("failed to find user: %v", err)
+		}
+		return user.Email, nil
+	}
+
 	var user User
-	err = coll.FindOne(context.TODO(), bson.M{"_id": uid}).Decode(&user)
+	err = coll.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&user)
 	if err != nil {
 		return "", fmt.Errorf("failed to find user: %v", err)
 	}
