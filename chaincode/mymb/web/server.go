@@ -52,6 +52,13 @@ type FundingReferral struct {
 	IsPaybacked            bool   `json:"isPaybacked"`
 }
 
+// FundingReferral 구조체 정의
+type FundingReferral1 struct {
+	ReferralPayback int    `json:"referralPayback"`
+	ReferralFrom    string `json:"referralFrom"`
+	ReferralTo      string `json:"referralTo"`
+}
+
 // Function to execute the Docker command and get users
 func getAllUsers() ([]User, error) {
 	cmd := exec.Command("docker", "exec", "cli", "peer", "chaincode", "query",
@@ -95,7 +102,7 @@ func getAllTokens() ([]Token, error) {
 }
 
 // MongoDB에서 FundingReferral 데이터를 가져오는 함수
-func getFundingReferrals() ([]FundingReferral, error) {
+func getFundingReferrals() ([]FundingReferral1, error) {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
@@ -109,9 +116,9 @@ func getFundingReferrals() ([]FundingReferral, error) {
 	}
 	defer cur.Close(context.TODO())
 
-	var referrals []FundingReferral
+	var referrals []FundingReferral1
 	for cur.Next(context.TODO()) {
-		var referral FundingReferral
+		var referral FundingReferral1
 		err := cur.Decode(&referral)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode document: %v", err)
@@ -171,9 +178,9 @@ func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 필터링된 필드만 포함하도록 설정
-	var filteredReferrals []FundingReferral
+	var filteredReferrals []FundingReferral1
 	for _, referral := range referrals {
-		filteredReferrals = append(filteredReferrals, FundingReferral{
+		filteredReferrals = append(filteredReferrals, FundingReferral1{
 			ReferralPayback: referral.ReferralPayback,
 			ReferralFrom:    referral.ReferralFrom,
 			ReferralTo:      referral.ReferralTo,
