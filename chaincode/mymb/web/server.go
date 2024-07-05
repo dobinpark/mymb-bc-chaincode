@@ -7,7 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"html/template"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -15,9 +14,10 @@ import (
 )
 
 const (
-	mongoURI   = "mongodb+srv://mymber:Alaql2022!@cluster-certifie.vkqpd9y.mongodb.net/?retryWrites=true&w=majority"
-	database   = "MYMB_DB"
-	collection = "fundingReferral"
+	mongoURI          = "mongodb+srv://mymber:Alaql2022!@cluster-certifie.vkqpd9y.mongodb.net/?retryWrites=true&w=majority"
+	database          = "MYMB_DB"
+	fundingCollection = "fundingReferral"
+	userCollection    = "user"
 )
 
 // BCUser 구조체 정의
@@ -51,6 +51,36 @@ type FundingReferral struct {
 	ReferralTo             string `json:"referralTo"`
 	IsBasePaymentCompleted bool   `json:"isBasePaymentCompleted"`
 	IsPaybacked            bool   `json:"isPaybacked"`
+}
+
+// User 구조체 정의
+type User struct {
+	ID                string    `bson:"_id"`
+	Email             string    `bson:"email"`
+	Password          string    `bson:"password"`
+	TicketCount       int       `bson:"ticketCount"`
+	ReferralCount     int       `bson:"referralCount"`
+	NickName          string    `bson:"nickName"`
+	InviterEmail      string    `bson:"inviterEmail"`
+	MainCardId        string    `bson:"mainCardId"`
+	MymId             string    `bson:"mymId"`
+	IsEnterprise      bool      `bson:"isEnterprise"`
+	CallNumber        string    `bson:"callNumber"`
+	CountryCode       string    `bson:"countryCode"`
+	BusinessNumber    string    `bson:"businessNumber"`
+	FileName          string    `bson:"fileName"`
+	UploadUrl         string    `bson:"uploadUrl"`
+	TrustUsers        []string  `bson:"trustUsers"`
+	TrustByUsers      []string  `bson:"trustByUsers"`
+	IsIdentified      bool      `bson:"isIdentified"`
+	CreatedAt         time.Time `bson:"createdAt"`
+	DeletedAt         time.Time `bson:"deletedAt"`
+	Name              string    `bson:"name"`
+	IsCertificated    bool      `bson:"isCertificated"`
+	BankAccount       string    `bson:"bankAccount"`
+	BankName          string    `bson:"bankName"`
+	AccountHolderName string    `bson:"accountHolderName"`
+	PhoneNum          string    `bson:"phoneNum"`
 }
 
 // Function to execute the Docker command and get users
@@ -103,7 +133,7 @@ func getFundingReferrals() ([]FundingReferral, error) {
 	}
 	defer client.Disconnect(context.TODO())
 
-	coll := client.Database(database).Collection(collection)
+	coll := client.Database(database).Collection(fundingCollection)
 	cur, err := coll.Find(context.TODO(), bson.D{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to find documents: %v", err)
@@ -127,6 +157,52 @@ func getFundingReferrals() ([]FundingReferral, error) {
 	return referrals, nil
 }
 
+// Function to get a user's email by UID
+func getUserEmailByID(uid string) (string, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		return "", fmt.Errorf("failed to connect to MongoDB: %v", err)
+	}
+	defer client.Disconnect(context.TODO())
+
+	coll := client.Database(database).Collection(userCollection)
+	var user User
+	err = coll.FindOne(context.TODO(), bson.M{"_id": uid}).Decode(&user)
+	if err != nil {
+		return "", fmt.Errorf("failed to find user: %v", err)
+	}
+
+	return user.Email, nil
+}
+
+// Function to get funding referrals with email replacement
+func getFundingReferralsWithEmails() ([]map[string]interface{}, error) {
+	referrals, err := getFundingReferrals()
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]interface{}
+	for _, referral := range referrals {
+		fromEmail, err := getUserEmailByID(referral.ReferralFrom)
+		if err != nil {
+			return nil, err
+		}
+		toEmail, err := getUserEmailByID(referral.ReferralTo)
+		if err != nil {
+			return nil, err
+		}
+		result := map[string]interface{}{
+			"referralPayback": referral.ReferralPayback,
+			"fromEmail":       fromEmail,
+			"toEmail":         toEmail,
+		}
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
 // Handler function to display users
 func usersHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := getAllUsers()
@@ -135,14 +211,8 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmplPath := "users.html"
-	tmpl, err := template.ParseFiles(tmplPath)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	tmpl.Execute(w, users)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
 }
 
 // Handler function to display tokens
@@ -153,32 +223,24 @@ func tokensHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmplPath := "tokens.html"
-	tmpl, err := template.ParseFiles(tmplPath)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	tmpl.Execute(w, tokens)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tokens)
 }
 
-// Handler function to display funding referrals
+// Handler function to display funding referrals with emails
 func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
-	referrals, err := getFundingReferrals()
+	referrals, err := getFundingReferralsWithEmails()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 필터링된 필드만 포함하도록 설정
 	var customReferrals []string
 	for _, referral := range referrals {
-		customReferral := fmt.Sprintf(`{"referralPayback": %d, "%s", "%s"}`, referral.ReferralPayback, referral.ReferralFrom, referral.ReferralTo)
+		customReferral := fmt.Sprintf(`{"referralPayback": %v, "%s", "%s"}`, referral["referralPayback"], referral["fromEmail"], referral["toEmail"])
 		customReferrals = append(customReferrals, customReferral)
 	}
 
-	// JSON 배열로 감싸기
 	finalJSON := "[" + strings.Join(customReferrals, ",") + "]"
 
 	w.Header().Set("Content-Type", "application/json")
