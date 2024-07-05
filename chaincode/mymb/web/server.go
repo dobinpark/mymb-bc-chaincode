@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"net/http"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -178,7 +179,7 @@ func fundingReferralsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// JSON 배열로 감싸기
-	finalJSON := "[" + string([]byte(fmt.Sprintf("%s", customReferrals))[1:len(customReferrals)*2-1]) + "]"
+	finalJSON := "[" + strings.Join(customReferrals, ",") + "]"
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(finalJSON))
