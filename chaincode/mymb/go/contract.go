@@ -41,7 +41,15 @@ const (
 func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInterface, tokenNumber string, owner string,
 	categoryCode string, fundingID string, ticketID string, tokenType string, sellStage string, imageURL string) (*Token1155, error) {
 
-	// Token 생성
+	user, err := c.GetUser(ctx, owner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user information: %v", err)
+	}
+
+	if user.UserId == "" {
+		return nil, fmt.Errorf("user %s does not exist", owner)
+	}
+
 	token := Token1155{
 		TokenNumber:      tokenNumber,
 		Owner:            owner,
@@ -51,10 +59,9 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		TokenType:        tokenType,
 		SellStage:        sellStage,
 		ImageURL:         imageURL,
-		TokenCreatedTime: time.Now(), // 현재 시간 사용
+		TokenCreatedTime: time.Now(),
 	}
 
-	// TokenNumber를 사용하여 Composite Key 생성 및 Token 저장
 	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create composite key: %v", err)
@@ -70,21 +77,9 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		return nil, fmt.Errorf("failed to put state: %v", err)
 	}
 
-	// 사용자의 ownedToken 필드에 토큰 추가
-	user, err := c.GetUser(ctx, owner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user information: %v", err)
-	}
-
-	// 사용자 정보 업데이트 전 출력
-	fmt.Printf("User information before update: %+v\n", user)
-
 	user.OwnedToken = append(user.OwnedToken, tokenNumber)
 
-	// 사용자 정보 업데이트 후 출력
-	fmt.Printf("User information after update: %+v\n", user)
-
-	userKey := owner // 닉네임을 키로 사용
+	userKey := owner
 	userBytes, err := json.Marshal(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal user information: %v", err)
@@ -93,41 +88,26 @@ func (c *TokenERC1155Contract) MintToken(ctx contractapi.TransactionContextInter
 		return nil, fmt.Errorf("failed to update user information: %v", err)
 	}
 
-	// 상태 업데이트 확인
-	updatedUserBytes, err := ctx.GetStub().GetState(userKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get updated user information: %v", err)
-	}
-	var updatedUser User
-	if err := json.Unmarshal(updatedUserBytes, &updatedUser); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal updated user information: %v", err)
-	}
-	fmt.Printf("Updated user state: %+v\n", updatedUser)
-
 	return &token, nil
 }
 
 // GetToken 해당 토큰을 조회하는 함수
 func (c *TokenERC1155Contract) GetToken(ctx contractapi.TransactionContextInterface, tokenNumber string) (*Token1155, error) {
 
-	// 토큰 Number를 사용하여 토큰 키 생성
 	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create composite key: %v", err)
 	}
 
-	// 토큰 상태 조회
 	tokenBytes, err := ctx.GetStub().GetState(tokenKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get state: %v", err)
 	}
 
-	// 조회된 토큰이 없으면 빈 토큰 반환
 	if tokenBytes == nil {
-		return &Token1155{}, nil
+		return nil, fmt.Errorf("token %s does not exist", tokenNumber)
 	}
 
-	// 조회된 토큰을 구조체로 변환하여 반환
 	var token Token1155
 	err = json.Unmarshal(tokenBytes, &token)
 	if err != nil {
@@ -162,7 +142,6 @@ func (c *TokenERC1155Contract) GetAllTokens(ctx contractapi.TransactionContextIn
 		tokens = append(tokens, token)
 	}
 
-	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d tokens\n", len(tokens))
 	return tokens, nil
 }
@@ -186,7 +165,6 @@ func (c *TokenERC1155Contract) GetTotalTokens(ctx contractapi.TransactionContext
 		totalCount++
 	}
 
-	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d tokens\n", totalCount)
 	return totalCount, nil
 }
@@ -194,15 +172,17 @@ func (c *TokenERC1155Contract) GetTotalTokens(ctx contractapi.TransactionContext
 // GetUserOwnedTokens 해당 유저가 가지고 있는 토큰들을 조회하는 함수
 func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionContextInterface, nickName string) ([]*Token1155, error) {
 
-	// 사용자 정보 조회
 	user, err := c.GetUser(ctx, nickName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user information: %v", err)
 	}
 
+	if user.UserId == "" {
+		return nil, fmt.Errorf("user %s does not exist", nickName)
+	}
+
 	var ownedTokens []*Token1155
 
-	// 사용자가 소유한 각 토큰 Number에 대해 토큰 정보 조회
 	for _, tokenNumber := range user.OwnedToken {
 		token, err := c.GetToken(ctx, tokenNumber)
 		if err != nil {
@@ -210,7 +190,6 @@ func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionCon
 		}
 		ownedTokens = append(ownedTokens, token)
 	}
-	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d tokens\n", len(ownedTokens))
 	return ownedTokens, nil
 }
@@ -218,16 +197,17 @@ func (c *TokenERC1155Contract) GetUserOwnedTokens(ctx contractapi.TransactionCon
 // UpdateSellStage sellStage 필드값을 변경하는 함수
 func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContextInterface, tokenNumber string, newSellStage string) error {
 
-	// 토큰 조회
 	token, err := c.GetToken(ctx, tokenNumber)
 	if err != nil {
 		return fmt.Errorf("failed to get token: %v", err)
 	}
 
-	// sellStage 필드 업데이트
+	if token.TokenNumber == "" {
+		return fmt.Errorf("token %s does not exist", tokenNumber)
+	}
+
 	token.SellStage = newSellStage
 
-	// 토큰 정보 업데이트
 	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return fmt.Errorf("failed to create composite key: %v", err)
@@ -248,17 +228,24 @@ func (c *TokenERC1155Contract) UpdateSellStage(ctx contractapi.TransactionContex
 // TransferToken 지정된 토큰을 전송하는 함수
 func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextInterface, from string, to string, tokenNumber string) error {
 
-	// 송신자와 수신자의 정보 가져오기
 	fromUser, err := c.GetUser(ctx, from)
 	if err != nil {
 		return fmt.Errorf("failed to get sender information: %v", err)
 	}
+
+	if fromUser.UserId == "" {
+		return fmt.Errorf("sender %s does not exist", from)
+	}
+
 	toUser, err := c.GetUser(ctx, to)
 	if err != nil {
 		return fmt.Errorf("failed to get receiver information: %v", err)
 	}
 
-	// 송신자가 보유한 토큰 중에서 전송할 토큰을 찾기
+	if toUser.UserId == "" {
+		return fmt.Errorf("receiver %s does not exist", to)
+	}
+
 	found := false
 	for _, t := range fromUser.OwnedToken {
 		if t == tokenNumber {
@@ -271,11 +258,9 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("sender %s does not own the specified token %s", from, tokenNumber)
 	}
 
-	// 송신자의 토큰 잔고 갱신
 	fromUser.OwnedToken = removeToken(fromUser.OwnedToken, tokenNumber)
 
-	// 송신자 정보 업데이트
-	fromUserKey := from // 닉네임을 사용하여 사용자 키 생성
+	fromUserKey := from
 	fromUserBytes, err := json.Marshal(fromUser)
 	if err != nil {
 		return fmt.Errorf("failed to marshal sender user: %v", err)
@@ -284,11 +269,9 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("failed to update sender balance: %v", err)
 	}
 
-	// 수신자의 토큰 잔고 갱신
 	toUser.OwnedToken = append(toUser.OwnedToken, tokenNumber)
 
-	// 수신자 정보 업데이트
-	toUserKey := to // 닉네임을 사용하여 사용자 키 생성
+	toUserKey := to
 	toUserBytes, err := json.Marshal(toUser)
 	if err != nil {
 		return fmt.Errorf("failed to marshal receiver user: %v", err)
@@ -297,7 +280,6 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("failed to update receiver balance: %v", err)
 	}
 
-	// 토큰 정보 가져오기
 	tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 	if err != nil {
 		return fmt.Errorf("failed to create composite key for token: %v", err)
@@ -310,16 +292,13 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("token %s does not exist", tokenNumber)
 	}
 
-	// 토큰의 소유자 업데이트
 	var token Token1155
 	if err := json.Unmarshal(tokenBytes, &token); err != nil {
 		return fmt.Errorf("failed to unmarshal token: %v", err)
 	}
 
-	// 토큰의 Owner 필드를 'to'로 변경
 	token.Owner = to
 
-	// 업데이트된 토큰 정보 저장
 	tokenBytes, err = json.Marshal(token)
 	if err != nil {
 		return fmt.Errorf("failed to marshal token: %v", err)
@@ -328,7 +307,6 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 		return fmt.Errorf("failed to update token owner: %v", err)
 	}
 
-	// 트랜잭션 성공적으로 기록 확인
 	txID := ctx.GetStub().GetTxID()
 	fmt.Printf("Transfer of token %s from %s to %s successfully recorded with transaction ID %s\n", tokenNumber, from, to, txID)
 
@@ -338,23 +316,27 @@ func (c *TokenERC1155Contract) TransferToken(ctx contractapi.TransactionContextI
 // TransferAllTokens 해당 유저의 모든 토큰들을 전송하는 함수
 func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionContextInterface, from string, to string) error {
 
-	// 발신자 사용자 정보 조회
 	fromUser, err := c.GetUser(ctx, from)
 	if err != nil {
 		return fmt.Errorf("failed to get user %s: %v", from, err)
 	}
 
-	// 수신자 사용자 정보 조회
+	if fromUser.UserId == "" {
+		return fmt.Errorf("sender %s does not exist", from)
+	}
+
 	toUser, err := c.GetUser(ctx, to)
 	if err != nil {
 		return fmt.Errorf("failed to get user %s: %v", to, err)
 	}
 
-	// 모든 토큰을 수신자에게 전송
+	if toUser.UserId == "" {
+		return fmt.Errorf("receiver %s does not exist", to)
+	}
+
 	toUser.OwnedToken = append(toUser.OwnedToken, fromUser.OwnedToken...)
 	fromUser.OwnedToken = []string{}
 
-	// 발신자 사용자 정보 업데이트
 	fromUserBytes, err := json.Marshal(fromUser)
 	if err != nil {
 		return fmt.Errorf("failed to marshal user %s: %v", from, err)
@@ -364,7 +346,6 @@ func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionCont
 		return fmt.Errorf("failed to put state for user %s: %v", from, err)
 	}
 
-	// 수신자 사용자 정보 업데이트
 	toUserBytes, err := json.Marshal(toUser)
 	if err != nil {
 		return fmt.Errorf("failed to marshal user %s: %v", to, err)
@@ -379,17 +360,18 @@ func (c *TokenERC1155Contract) TransferAllTokens(ctx contractapi.TransactionCont
 
 // DeleteTokens 지정된 토큰들을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextInterface, nickName string, tokenNumbers []string) error {
-	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
 	if err != nil {
 		return fmt.Errorf("failed to get user: %v", err)
 	}
 
-	// 토큰 목록에서 지정된 토큰들 제거
+	if user.UserId == "" {
+		return fmt.Errorf("user %s does not exist", nickName)
+	}
+
 	for _, tokenNumber := range tokenNumbers {
 		user.OwnedToken = removeToken(user.OwnedToken, tokenNumber)
 
-		// 체인코드 상태에서 토큰 삭제
 		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 		if err != nil {
 			return fmt.Errorf("failed to create composite key: %v", err)
@@ -399,7 +381,6 @@ func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextIn
 		}
 	}
 
-	// 업데이트된 사용자 정보 저장
 	userKey := user.NickName
 	userBytes, err := json.Marshal(user)
 	if err != nil {
@@ -414,15 +395,16 @@ func (c *TokenERC1155Contract) DeleteTokens(ctx contractapi.TransactionContextIn
 
 // DeleteAllTokens 해당 유저가 가지고 있는 모든 토큰들을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContextInterface, nickName string) error {
-	// 사용자의 토큰 목록 가져오기
 	user, err := c.GetUser(ctx, nickName)
 	if err != nil {
 		return fmt.Errorf("failed to get user: %v", err)
 	}
 
-	// 모든 토큰 삭제
+	if user.UserId == "" {
+		return fmt.Errorf("user %s does not exist", nickName)
+	}
+
 	for _, tokenNumber := range user.OwnedToken {
-		// 체인코드 상태에서 토큰 삭제
 		tokenKey, err := ctx.GetStub().CreateCompositeKey(tokenPrefix, []string{tokenNumber})
 		if err != nil {
 			return fmt.Errorf("failed to create composite key: %v", err)
@@ -432,10 +414,8 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 		}
 	}
 
-	// 사용자의 OwnedToken 필드 초기화
 	user.OwnedToken = []string{}
 
-	// 업데이트된 사용자 정보 저장
 	userKey := user.NickName
 	userBytes, err := json.Marshal(user)
 	if err != nil {
@@ -451,7 +431,11 @@ func (c *TokenERC1155Contract) DeleteAllTokens(ctx contractapi.TransactionContex
 // CreateUserBlock 유저 정보 블록을 생성하는 함수
 func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContextInterface, userId string, nickName string, mymPoint int64, ownedToken []string) error {
 
-	// User 생성
+	userBytes, err := ctx.GetStub().GetState(nickName)
+	if err == nil && userBytes != nil {
+		return fmt.Errorf("user %s already exists", nickName)
+	}
+
 	user := User{
 		UserId:           userId,
 		NickName:         nickName,
@@ -460,9 +444,8 @@ func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContex
 		BlockCreatedTime: time.Now(),
 	}
 
-	// User 블록 저장
-	userKey := nickName // nickName을 키로 사용
-	userBytes, err := json.Marshal(user)
+	userKey := nickName
+	userBytes, err = json.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("failed to marshal user block: %v", err)
 	}
@@ -477,7 +460,6 @@ func (c *TokenERC1155Contract) CreateUserBlock(ctx contractapi.TransactionContex
 // GetUser 해당 유저 정보를 조회하는 함수
 func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterface, nickName string) (*User, error) {
 
-	// 닉네임을 UTF-8로 인코딩
 	userKey := nickName
 	userBytes, err := ctx.GetStub().GetState(userKey)
 	if err != nil {
@@ -485,7 +467,6 @@ func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterfa
 	}
 
 	if userBytes == nil {
-		// 존재하지 않는 사용자인 경우 빈 User 객체를 반환
 		return &User{
 			NickName:   nickName,
 			OwnedToken: []string{},
@@ -498,7 +479,6 @@ func (c *TokenERC1155Contract) GetUser(ctx contractapi.TransactionContextInterfa
 		return nil, fmt.Errorf("failed to unmarshal user block: %v", err)
 	}
 
-	// OwnedToken 필드가 nil인 경우 빈 배열로 초기화
 	if user.OwnedToken == nil {
 		user.OwnedToken = []string{}
 	}
@@ -530,7 +510,6 @@ func (c *TokenERC1155Contract) GetAllUsers(ctx contractapi.TransactionContextInt
 		}
 		users = append(users, user)
 	}
-	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d users\n", len(users))
 	return users, nil
 }
@@ -554,27 +533,22 @@ func (c *TokenERC1155Contract) GetTotalUsers(ctx contractapi.TransactionContextI
 		totalCount++
 	}
 
-	// 총 개수를 로그에 출력
 	fmt.Printf("total: %d users\n", totalCount)
 	return totalCount, nil
 }
 
 // DeleteUser 해당 닉네임을 가진 유저 블록을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteUser(ctx contractapi.TransactionContextInterface, nickName string) error {
-	// 닉네임을 키로 사용
 	userKey := nickName
 
-	// 유저가 존재하는지 확인
 	userBytes, err := ctx.GetStub().GetState(userKey)
 	if err != nil {
 		return fmt.Errorf("failed to read user block: %v", err)
 	}
 	if userBytes == nil {
-		// 존재하지 않는 사용자인 경우 빈 User 객체를 반환
 		return fmt.Errorf("user with nickname %s does not exist", nickName)
 	}
 
-	// 유저 블록 삭제
 	err = ctx.GetStub().DelState(userKey)
 	if err != nil {
 		return fmt.Errorf("failed to delete user block: %v", err)
@@ -586,14 +560,12 @@ func (c *TokenERC1155Contract) DeleteUser(ctx contractapi.TransactionContextInte
 // DeleteAllUserBlocks 모든 유저 정보 블록을 삭제하는 함수
 func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionContextInterface) error {
 
-	// 전체 유저 상태 조회
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
 	if err != nil {
 		return fmt.Errorf("failed to get state by range: %v", err)
 	}
 	defer resultsIterator.Close()
 
-	// 각 유저 상태 삭제
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
@@ -613,7 +585,6 @@ func (c *TokenERC1155Contract) DeleteAllUserBlocks(ctx contractapi.TransactionCo
 // UpdateMymPoint 커뮤니티 활동 포인트 적립하는 함수
 func (c *TokenERC1155Contract) UpdateMymPoint(ctx contractapi.TransactionContextInterface, nickName string, delta int64) error {
 
-	// 기존 유저 정보 가져오기
 	userKey := nickName
 	userBytes, err := ctx.GetStub().GetState(userKey)
 	if err != nil {
@@ -629,14 +600,12 @@ func (c *TokenERC1155Contract) UpdateMymPoint(ctx contractapi.TransactionContext
 		return fmt.Errorf("failed to unmarshal user block: %v", err)
 	}
 
-	// MymPoint 업데이트(음수 방지)
 	newMymPoint := user.MymPoint + delta
 	if newMymPoint < 0 {
 		return fmt.Errorf("MymPoint cannot be negative")
 	}
 	user.MymPoint = newMymPoint
 
-	// 업데이트된 유저 정보 저장
 	userBytes, err = json.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("failed to marshal updated user block: %v", err)
@@ -661,8 +630,6 @@ func removeToken(tokens []string, tokenNumber string) []string {
 }
 
 func main() {
-	// The main function is not required for Hyperledger Fabric chaincode
-	// It's here only for demonstration purposes
 	cc, err := contractapi.NewChaincode(new(TokenERC1155Contract))
 	if err != nil {
 		panic(err.Error())
