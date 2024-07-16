@@ -48,7 +48,7 @@ type Token struct {
 type FundingReferral struct {
 	FundingReferralId      primitive.ObjectID `bson:"_id,omitempty"`
 	PayId                  string             `bson:"payId,omitempty"`
-	ReferralPayback        int                `bson:"referralPayback,omitempty"`
+	ReferralPayback        int64              `bson:"referralPayback,omitempty"`
 	ReferralFrom           string             `bson:"referralFrom,omitempty"`
 	ReferralTo             string             `bson:"referralTo,omitempty"`
 	IsBasePaymentCompleted bool               `bson:"isBasePaymentCompleted,omitempty"`
