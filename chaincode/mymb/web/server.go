@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -46,13 +47,13 @@ type Token struct {
 
 // FundingReferral 구조체 정의
 type FundingReferral struct {
-	FundingReferralId      string `json:"_id"`
-	PayId                  string `json:"payId"`
-	ReferralPayback        int    `json:"referralPayback"`
-	ReferralFrom           string `json:"referralFrom"`
-	ReferralTo             string `json:"referralTo"`
-	IsBasePaymentCompleted bool   `json:"isBasePaymentCompleted"`
-	IsPaybacked            bool   `json:"isPaybacked"`
+	FundingReferralId      string               `json:"_id"`
+	PayId                  string               `json:"payId"`
+	ReferralPayback        primitive.Decimal128 `json:"referralPayback"`
+	ReferralFrom           string               `json:"referralFrom"`
+	ReferralTo             string               `json:"referralTo"`
+	IsBasePaymentCompleted bool                 `json:"isBasePaymentCompleted"`
+	IsPaybacked            bool                 `json:"isPaybacked"`
 }
 
 // User 구조체 정의
@@ -197,8 +198,13 @@ func getFundingReferralsWithEmails() ([]map[string]interface{}, error) {
 		if !exists {
 			bankName = bankNameCode // 코드가 없으면 그대로 사용
 		}
+		referralPaybackStr := referral.ReferralPayback.String()
+		referralPaybackInt, err := strconv.Atoi(strings.Split(referralPaybackStr, ".")[0])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert referralPayback to int: %v", err)
+		}
 		result := map[string]interface{}{
-			"referralPayback": referral.ReferralPayback,
+			"referralPayback": referralPaybackInt,
 			"fromEmail":       fromEmail,
 			"toEmail":         toEmail,
 			"bankAccount":     bankAccount,
