@@ -11,7 +11,6 @@ import (
 	"html/template"
 	"net/http"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -25,35 +24,35 @@ const (
 
 // BCUser 구조체 정의
 type BCUser struct {
-	UserId           string   `json:"userID"`
-	NickName         string   `json:"nickName"`
-	MymPoint         int64    `json:"mymPoint"`
-	OwnedToken       []string `json:"ownedToken"`
-	BlockCreatedTime string   `json:"blockCreatedTime"`
+	UserId           string   `bson:"userID"`
+	NickName         string   `bson:"nickName"`
+	MymPoint         int64    `bson:"mymPoint"`
+	OwnedToken       []string `bson:"ownedToken"`
+	BlockCreatedTime string   `bson:"blockCreatedTime"`
 }
 
 // Token 구조체 정의
 type Token struct {
-	TokenNumber      string    `json:"tokenNumber"`
-	Owner            string    `json:"owner"`
-	CategoryCode     string    `json:"categoryCode"`
-	FundingID        string    `json:"fundingID"`
-	TicketID         string    `json:"ticketID"`
-	TokenType        string    `json:"tokenType"`
-	SellStage        string    `json:"sellStage"`
-	ImageURL         string    `json:"imageURL"`
-	TokenCreatedTime time.Time `json:"tokenCreatedTime"`
+	TokenNumber      string    `bson:"tokenNumber"`
+	Owner            string    `bson:"owner"`
+	CategoryCode     string    `bson:"categoryCode"`
+	FundingID        string    `bson:"fundingID"`
+	TicketID         string    `bson:"ticketID"`
+	TokenType        string    `bson:"tokenType"`
+	SellStage        string    `bson:"sellStage"`
+	ImageURL         string    `bson:"imageURL"`
+	TokenCreatedTime time.Time `bson:"tokenCreatedTime"`
 }
 
 // FundingReferral 구조체 정의
 type FundingReferral struct {
-	FundingReferralId      string               `json:"_id"`
-	PayId                  string               `json:"payId"`
-	ReferralPayback        primitive.Decimal128 `json:"referralPayback"`
-	ReferralFrom           string               `json:"referralFrom"`
-	ReferralTo             string               `json:"referralTo"`
-	IsBasePaymentCompleted bool                 `json:"isBasePaymentCompleted"`
-	IsPaybacked            bool                 `json:"isPaybacked"`
+	FundingReferralId      primitive.ObjectID `bson:"_id,omitempty"`
+	PayId                  string             `bson:"payId,omitempty"`
+	ReferralPayback        int                `bson:"referralPayback,omitempty"`
+	ReferralFrom           string             `bson:"referralFrom,omitempty"`
+	ReferralTo             string             `bson:"referralTo,omitempty"`
+	IsBasePaymentCompleted bool               `bson:"isBasePaymentCompleted,omitempty"`
+	IsPaybacked            bool               `bson:"isPaybacked,omitempty"`
 }
 
 // User 구조체 정의
@@ -198,13 +197,8 @@ func getFundingReferralsWithEmails() ([]map[string]interface{}, error) {
 		if !exists {
 			bankName = bankNameCode // 코드가 없으면 그대로 사용
 		}
-		referralPaybackStr := referral.ReferralPayback.String()
-		referralPaybackInt, err := strconv.Atoi(strings.Split(referralPaybackStr, ".")[0])
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert referralPayback to int: %v", err)
-		}
 		result := map[string]interface{}{
-			"referralPayback": referralPaybackInt,
+			"referralPayback": referral.ReferralPayback,
 			"fromEmail":       fromEmail,
 			"toEmail":         toEmail,
 			"bankAccount":     bankAccount,
